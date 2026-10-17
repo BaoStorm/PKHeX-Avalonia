@@ -40,7 +40,7 @@ public sealed class FilterableComboBoxGeometryTests
         var editorFields = FindEditorFields(pokemonEditor, editorWindow);
         var encounterFields = encounterView.GetVisualDescendants().OfType<FilterableComboBox>().ToArray();
 
-        Assert.Equal(10, editorFields.Count);
+        Assert.Equal(11, editorFields.Count);
         Assert.Single(encounterFields);
 
         foreach (var field in editorFields.Concat(encounterFields))
@@ -75,7 +75,11 @@ public sealed class FilterableComboBoxGeometryTests
         Assert.False(field.IsDropDownOpen);
 
         var selected = viewModel.SpeciesList.Single(item => item.Value == 25);
-        field.SelectedItem = selected;
+        field.MinimumPopulateDelay = TimeSpan.Zero;
+        window.KeyTextInput(selected.Text);
+        Pump(window);
+        window.KeyPressQwerty(PhysicalKey.Enter, RawInputModifiers.None);
+        window.KeyReleaseQwerty(PhysicalKey.Enter, RawInputModifiers.None);
         Pump(window);
 
         Assert.Equal(25, field.SelectedValue);

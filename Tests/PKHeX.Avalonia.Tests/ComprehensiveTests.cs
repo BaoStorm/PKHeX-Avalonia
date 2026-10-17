@@ -486,6 +486,9 @@ public class ComprehensiveTests
         { 
             // Navigation is presentation state and is deliberately not serialized into a PKM.
             "SelectedTab", nameof(PokemonEditorViewModel.SelectedEditorSection), "Stat_HP", "Stat_ATK", "Stat_DEF", "Stat_SPA", "Stat_SPD", "Stat_SPE",
+            // This selector depends on format/species/slot availability, rather than storing
+            // an arbitrary integer. LegacyAbilityPickerTests verifies its serialized result.
+            nameof(PokemonEditorViewModel.SelectedAbilityIndex),
             "HaXStatHP", "HaXStatATK", "HaXStatDEF", "HaXStatSPA", "HaXStatSPD", "HaXStatSPE",
             "Species", "Form", "Ability", "Level", "TargetPKM", "Nature", "Gender",
             "EggLocation", "MetLocation", "MetLevel", "OriginalTrainerGender", "Ball",
