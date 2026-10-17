@@ -16,6 +16,9 @@ public partial class MailBoxEditorViewModel : ViewModelBase
     private readonly int[] _mailItemIds;
     private readonly byte _generation;
     private readonly System.Collections.Generic.IList<PKM> _party;
+    private bool _hasChanges;
+    private int _loadedLanguageIndex;
+    private int _loadedSpeciesIndex;
 
     [ObservableProperty]
     private ObservableCollection<MailEntryViewModel> _partyMail = [];
@@ -89,7 +92,7 @@ public partial class MailBoxEditorViewModel : ViewModelBase
     public MailBoxEditorViewModel(SaveFile sav)
     {
         _sav = sav;
-        _clone = sav.Clone();
+        _clone = CloneForEditing(sav);
         _generation = sav.Generation;
         _party = _clone.PartyData;
 
@@ -149,9 +152,43 @@ public partial class MailBoxEditorViewModel : ViewModelBase
         LoadMailLists();
     }
 
+    private static SaveFile CloneForEditing(SaveFile source)
+    {
+        if (source is not SAV3 gen3)
+        {
+            // Gen 2 Clone packs live party/box buffers and checksums into Data; Gen 4
+            // Clone marks the source edited while copying blocks to its new instance.
+            // Keep Core's complete clone semantics while restoring those source effects.
+            var serialized = source.Data.ToArray();
+            bool edited = source.State.Edited;
+            try { return source.Clone(); }
+            finally
+            {
+                serialized.AsSpan().CopyTo(source.Data);
+                source.State.Edited = edited;
+            }
+        }
+
+        // Core's Gen 3 Clone serializes live buffers into the source sectors. Stage the
+        // semantic buffers directly so opening or canceling the editor changes no bytes.
+        SAV3 clone = gen3 switch
+        {
+            SAV3RS => new SAV3RS(gen3.Japanese),
+            SAV3E => new SAV3E(gen3.Japanese),
+            SAV3FRLG => new SAV3FRLG(gen3.Japanese),
+            _ => throw new System.ArgumentOutOfRangeException(nameof(source)),
+        };
+        gen3.Small.CopyTo(clone.Small);
+        gen3.Large.CopyTo(clone.Large);
+        gen3.Storage.CopyTo(clone.Storage);
+        clone.Version = gen3.Version;
+        clone.Language = gen3.Language;
+        return clone;
+    }
+
     private void LoadComboBoxData()
     {
-        var filtered = GameInfo.FilteredSources;
+        var filtered = new FilteredGameDataSource(_clone, GameInfo.Sources);
         var source = filtered.Source;
 
         // Mail types
@@ -166,7 +203,24 @@ public partial class MailBoxEditorViewModel : ViewModelBase
 
         // Species
         foreach (var spec in filtered.Species)
-            Species.Add(spec);
+        {
+            if (_generation != 3)
+            {
+                Species.Add(spec);
+                continue;
+            }
+
+            if (spec.Value != (ushort)Core.Species.Unown)
+            {
+                Species.Add(new ComboItem(spec.Text, SpeciesConverter.GetInternal3((ushort)spec.Value)));
+                continue;
+            }
+
+            var forms = FormConverter.GetFormList((ushort)Core.Species.Unown, source.Strings.Types,
+                source.Strings.forms, GameInfo.GenderSymbolASCII, _clone.Context);
+            for (int form = 0; form < forms.Length; form++)
+                Species.Add(new ComboItem($"{spec.Text} ({forms[form]})", 30000 + form));
+        }
     }
 
     private void LoadMailLists()
@@ -209,13 +263,19 @@ public partial class MailBoxEditorViewModel : ViewModelBase
         // Language
         var langIndex = Languages.ToList().FindIndex(l => l.Value == mail.AuthorLanguage);
         SelectedLanguageIndex = langIndex >= 0 ? langIndex : 0;
+        _loadedLanguageIndex = SelectedLanguageIndex;
 
         // Species
         var species = mail.AppearPKM;
-        if (_generation == 3)
-            species = SpeciesConverter.GetNational3(species);
         var specIndex = Species.ToList().FindIndex(s => s.Value == species);
+        if (_generation == 3 && specIndex < 0)
+        {
+            // Retain unrecognized stored appearances rather than silently selecting another species.
+            specIndex = Species.Count;
+            Species.Add(new ComboItem(LocalizedStrings.Instance.Format("MysteryGiftEditor_UnknownSpecies", species), species));
+        }
         SelectedSpeciesIndex = specIndex >= 0 ? specIndex : 0;
+        _loadedSpeciesIndex = SelectedSpeciesIndex;
 
         // Messages
         if (_generation == 2)
@@ -244,41 +304,60 @@ public partial class MailBoxEditorViewModel : ViewModelBase
             return;
 
         var mail = SelectedMail.Mail;
-        mail.AuthorName = AuthorName;
-        mail.AuthorTID = AuthorTid;
-        mail.AuthorSID = AuthorSid;
-        mail.MailType = CbIndexToMailType(SelectedMailTypeIndex);
+        // Do not re-encode unchanged text or normalize empty/unknown stored values.
+        if (AuthorName != mail.AuthorName) { mail.AuthorName = AuthorName; _hasChanges = true; }
+        if (AuthorTid != mail.AuthorTID) { mail.AuthorTID = AuthorTid; _hasChanges = true; }
+        if (AuthorSid != mail.AuthorSID) { mail.AuthorSID = AuthorSid; _hasChanges = true; }
+        if (SelectedMailTypeIndex != MailTypeToCbIndex(mail))
+        {
+            mail.MailType = CbIndexToMailType(SelectedMailTypeIndex);
+            _hasChanges = true;
+        }
 
-        if (SelectedLanguageIndex >= 0 && SelectedLanguageIndex < Languages.Count)
-            mail.AuthorLanguage = (byte)Languages[SelectedLanguageIndex].Value;
+        if (SelectedLanguageIndex != _loadedLanguageIndex && SelectedLanguageIndex >= 0 && SelectedLanguageIndex < Languages.Count)
+        {
+            var language = (byte)Languages[SelectedLanguageIndex].Value;
+            if (language != mail.AuthorLanguage) { mail.AuthorLanguage = language; _hasChanges = true; }
+        }
 
-        var species = SelectedSpeciesIndex >= 0 && SelectedSpeciesIndex < Species.Count
-            ? (ushort)Species[SelectedSpeciesIndex].Value
-            : (ushort)0;
-
-        if (_generation == 3)
-            mail.AppearPKM = SpeciesConverter.GetInternal3(species);
-        else
-            mail.AppearPKM = species;
+        if (SelectedSpeciesIndex != _loadedSpeciesIndex && SelectedSpeciesIndex >= 0 && SelectedSpeciesIndex < Species.Count)
+        {
+            var species = (ushort)Species[SelectedSpeciesIndex].Value;
+            if (species != mail.AppearPKM) { mail.AppearPKM = species; _hasChanges = true; }
+        }
 
         if (_generation == 2)
         {
-            mail.SetMessage(MessageText1, MessageText2, UserEntered);
+            if (MessageText1 != mail.GetMessage(false) || MessageText2 != mail.GetMessage(true) || UserEntered != mail.UserEntered)
+            {
+                mail.SetMessage(MessageText1, MessageText2, UserEntered);
+                _hasChanges = true;
+            }
         }
         else
         {
-            mail.SetMessage(0, 0, Message00);
-            mail.SetMessage(0, 1, Message01);
-            mail.SetMessage(0, 2, Message02);
-            mail.SetMessage(1, 0, Message10);
-            mail.SetMessage(1, 1, Message11);
-            mail.SetMessage(1, 2, Message12);
-            mail.SetMessage(2, 0, Message20);
-            mail.SetMessage(2, 1, Message21);
-            mail.SetMessage(2, 2, Message22);
+            SetMessage(0, 0, Message00);
+            SetMessage(0, 1, Message01);
+            SetMessage(0, 2, Message02);
+            SetMessage(1, 0, Message10);
+            SetMessage(1, 1, Message11);
+            SetMessage(1, 2, Message12);
+            SetMessage(2, 0, Message20);
+            SetMessage(2, 1, Message21);
+            SetMessage(2, 2, Message22);
         }
 
         SelectedMail.Refresh();
+        _loadedLanguageIndex = SelectedLanguageIndex;
+        _loadedSpeciesIndex = SelectedSpeciesIndex;
+
+        void SetMessage(int row, int column, ushort value)
+        {
+            if (value == mail.GetMessage(row, column))
+                return;
+            mail.SetMessage(row, column, value);
+            _hasChanges = true;
+        }
     }
 
     private int MailTypeToCbIndex(MailDetail mail)
@@ -307,6 +386,7 @@ public partial class MailBoxEditorViewModel : ViewModelBase
             return;
 
         SelectedMail.Mail.SetBlank();
+        _hasChanges = true;
         SelectedMail.Refresh();
         LoadMailDetails(SelectedMail.Mail);
         DeleteMailCommand.NotifyCanExecuteChanged();
@@ -316,6 +396,8 @@ public partial class MailBoxEditorViewModel : ViewModelBase
     private void Save()
     {
         SaveMailDetails();
+        if (!_hasChanges)
+            return;
 
         // Copy mail back to save
         switch (_generation)
@@ -342,10 +424,11 @@ public partial class MailBoxEditorViewModel : ViewModelBase
                 break;
         }
 
-        if (_party.Count > 0)
+        if (_generation is 4 or 5 && _party.Count > 0)
             _clone.PartyData = _party;
 
         _sav.CopyChangesFrom(_clone);
+        _hasChanges = false;
     }
 }
 
