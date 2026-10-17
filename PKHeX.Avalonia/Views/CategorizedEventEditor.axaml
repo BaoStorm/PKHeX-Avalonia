@@ -10,10 +10,14 @@
     </UserControl.KeyBindings>
     <Border Classes="view-container">
         <DockPanel>
-            <StackPanel DockPanel.Dock="Top" Spacing="6" Margin="0,0,0,8">
-                <TextBlock Text="{loc:Loc Events_Title}" Classes="view-title" />
-                <TextBlock Text="{loc:Loc Events_Warning}" TextWrapping="Wrap" />
-            </StackPanel>
+            <Grid DockPanel.Dock="Top" ColumnDefinitions="Auto,*" Margin="0,0,0,8">
+                <TextBlock Text="{loc:Loc Events_Title}" Classes="view-title" Margin="0,0,12,0" />
+                <ScrollViewer x:Name="EventWarningScroll" Grid.Column="1" MaxHeight="40"
+                              HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto"
+                              Focusable="True" AutomationProperties.Name="{loc:Loc Events_Warning}">
+                    <TextBlock Text="{loc:Loc Events_Warning}" TextWrapping="Wrap" />
+                </ScrollViewer>
+            </Grid>
             <DockPanel DockPanel.Dock="Bottom" Margin="0,8,0,0">
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8">
                     <Button Content="{loc:Loc EventFlagsEditor_Reset}" Command="{Binding ResetCommand}" />
@@ -23,10 +27,18 @@
                 <TextBlock Text="{Binding StatusText}" TextWrapping="Wrap" VerticalAlignment="Center"
                            AutomationProperties.LiveSetting="Polite" Margin="0,0,8,0" />
             </DockPanel>
-            <TabControl>
+            <TabControl Classes="compact-editor-tabs">
                 <TabItem Header="{loc:Loc Events_Edit}">
-                    <Grid RowDefinitions="Auto,*,Auto" Margin="0,8,0,0">
-                        <StackPanel x:Name="EditorFilters" Grid.Row="0" Spacing="6" Margin="0,0,0,6">
+                    <Grid Margin="0,4,0,0"
+                          TextElement.FontSize="{Binding $parent[UserControl].FontSize}"
+                          TextElement.FontWeight="{Binding $parent[UserControl].FontWeight}"
+                          TextElement.Foreground="{Binding $parent[UserControl].Foreground}">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="2*" MinHeight="80" />
+                            <RowDefinition Height="*" MinHeight="64" MaxHeight="120" />
+                        </Grid.RowDefinitions>
+                        <StackPanel x:Name="EditorFilters" Grid.Row="0" Spacing="4" Margin="0,0,0,4">
                             <WrapPanel>
                                 <ComboBox ItemsSource="{Binding Banks}" SelectedItem="{Binding SelectedBank}"
                                           AutomationProperties.Name="{loc:Loc Events_Bank}" Width="160" Margin="0,0,8,6">
@@ -42,12 +54,15 @@
                                 </ComboBox>
                                 <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,0,0,6">
                                     <TextBlock Text="{loc:Loc Events_Index}" VerticalAlignment="Center" />
-                                    <NumericUpDown Value="{Binding SelectedIndex}" Minimum="0" Maximum="{Binding MaxIndex}" Width="100"
+                                    <NumericUpDown Value="{Binding SelectedIndex}" Minimum="0" Maximum="{Binding MaxIndex}" Width="140"
                                                    FormatString="0" AutomationProperties.Name="{loc:Loc Events_Index}" />
                                 </StackPanel>
                             </WrapPanel>
-                            <TextBox Text="{Binding SearchText}" Watermark="{loc:Loc Events_Search}" AutomationProperties.Name="{loc:Loc Events_Search}" />
-                            <TextBlock Text="{Binding ScopeText}" Classes="muted" />
+                            <Grid ColumnDefinitions="*,Auto">
+                                <TextBox Text="{Binding SearchText}" Watermark="{loc:Loc Events_Search}" AutomationProperties.Name="{loc:Loc Events_Search}" />
+                                <TextBlock Grid.Column="1" Text="{Binding ScopeText}" Classes="muted" MaxWidth="280"
+                                           TextWrapping="Wrap" VerticalAlignment="Center" Margin="8,0,0,0" />
+                            </Grid>
                         </StackPanel>
                         <ContentControl x:Name="EditorDetails" Grid.Row="2" Content="{Binding SelectedRow}" Margin="0,6,0,0">
                             <ContentControl.ContentTemplate>
@@ -115,7 +130,10 @@
                     </Grid>
                 </TabItem>
                 <TabItem Header="{loc:Loc Events_Research}">
-                    <DockPanel Margin="0,8,0,0">
+                    <DockPanel Margin="0,8,0,0"
+                               TextElement.FontSize="{Binding $parent[UserControl].FontSize}"
+                               TextElement.FontWeight="{Binding $parent[UserControl].FontWeight}"
+                               TextElement.Foreground="{Binding $parent[UserControl].Foreground}">
                         <StackPanel DockPanel.Dock="Top" Spacing="8" Margin="0,0,0,8">
                             <TextBlock Text="{loc:Loc Events_ResearchHelp}" TextWrapping="Wrap" />
                             <WrapPanel>
