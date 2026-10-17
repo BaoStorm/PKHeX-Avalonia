@@ -10,6 +10,7 @@ public partial class PokemonEditorViewModel
 {
     // Met Info
     [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(RerollPidCommand))]
     private int _originGame;
 
     [ObservableProperty]
