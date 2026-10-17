@@ -103,4 +103,6 @@ jobs:
             **/TestResults/**/Sequence*.xml
             **/TestResults/stat-experience-*.png
             **/TestResults/stat-experience-*.txt
+            **/TestResults/events4-*.png
+            **/TestResults/events4-*.txt
           retention-days: 14
