@@ -199,7 +199,13 @@ public partial class MailBoxEditorViewModel : ViewModelBase
 
         // Languages
         foreach (var lang in GameInfo.LanguageDataSource(_clone.Generation, _clone.Context))
-            Languages.Add(lang);
+        {
+            if (_generation == 3 && lang.Value != (int)LanguageID.Japanese && lang.Value != (int)LanguageID.English)
+                continue;
+            Languages.Add(_generation == 3 && lang.Value == (int)LanguageID.English
+                ? new ComboItem(LocalizedStrings.Instance["MailBoxEditor_International"], lang.Value)
+                : lang);
+        }
 
         // Species
         foreach (var spec in filtered.Species)
@@ -304,20 +310,39 @@ public partial class MailBoxEditorViewModel : ViewModelBase
             return;
 
         var mail = SelectedMail.Mail;
+        var nameChanged = AuthorName != mail.AuthorName;
+        var languageChanged = false;
+        if (SelectedLanguageIndex != _loadedLanguageIndex && SelectedLanguageIndex >= 0 && SelectedLanguageIndex < Languages.Count)
+        {
+            var language = Languages[SelectedLanguageIndex].Value;
+            if ((_generation != 3 || language is (int)LanguageID.Japanese or (int)LanguageID.English) && language != mail.AuthorLanguage)
+            {
+                // Gen 3's language flag selects the character table for AuthorName.
+                // It is inferred from the serialized name again when the save reopens.
+                mail.AuthorLanguage = (byte)language;
+                languageChanged = true;
+                _hasChanges = true;
+            }
+        }
+
         // Do not re-encode unchanged text or normalize empty/unknown stored values.
-        if (AuthorName != mail.AuthorName) { mail.AuthorName = AuthorName; _hasChanges = true; }
+        if (nameChanged || (_generation == 3 && languageChanged))
+        {
+            // Core fills an empty name with FF, which infers Japanese on reopen.
+            // An intentionally blank international name uses Core's standard minimum
+            // six-space padding, so its sixth byte still identifies that character table.
+            mail.AuthorName = _generation == 3 && mail.AuthorLanguage == (byte)LanguageID.English && AuthorName.Length == 0
+                ? "      "
+                : AuthorName;
+            AuthorName = mail.AuthorName;
+            _hasChanges = true;
+        }
         if (AuthorTid != mail.AuthorTID) { mail.AuthorTID = AuthorTid; _hasChanges = true; }
         if (AuthorSid != mail.AuthorSID) { mail.AuthorSID = AuthorSid; _hasChanges = true; }
         if (SelectedMailTypeIndex != MailTypeToCbIndex(mail))
         {
             mail.MailType = CbIndexToMailType(SelectedMailTypeIndex);
             _hasChanges = true;
-        }
-
-        if (SelectedLanguageIndex != _loadedLanguageIndex && SelectedLanguageIndex >= 0 && SelectedLanguageIndex < Languages.Count)
-        {
-            var language = (byte)Languages[SelectedLanguageIndex].Value;
-            if (language != mail.AuthorLanguage) { mail.AuthorLanguage = language; _hasChanges = true; }
         }
 
         if (SelectedSpeciesIndex != _loadedSpeciesIndex && SelectedSpeciesIndex >= 0 && SelectedSpeciesIndex < Species.Count)
