@@ -22,11 +22,12 @@ namespace PKHeX.Avalonia.Render.Tests;
 public sealed class Gen4EventWorkspaceRenderTests
 {
     [AvaloniaTheory]
-    [InlineData("gen4_diamond.sav", "en", false)]
-    [InlineData("gen4_platinum.sav", "de", true)]
-    [InlineData("gen4_heartgold.sav", "ja", false)]
-    [InlineData("gen4_platinum.sav", "pt-BR", true)]
-    public async Task OriginalDsEventsRenderInTheCompactMainWorkspaceWithReachableLabelsAndApply(string file, string language, bool dark)
+    [InlineData("gen4_diamond.sav", "en", false, 600)]
+    [InlineData("gen4_platinum.sav", "de", true, 600)]
+    [InlineData("gen4_heartgold.sav", "ja", false, 600)]
+    [InlineData("gen4_platinum.sav", "pt-BR", true, 600)]
+    [InlineData("gen4_heartgold.sav", "ja", false, 570)]
+    public async Task OriginalDsEventsRenderInTheCompactMainWorkspaceWithReachableLabelsAndApply(string file, string language, bool dark, int height)
     {
         var previousLanguage = LocalizedStrings.Instance.CurrentLanguage;
         var previousData = GameInfo.CurrentLanguage;
@@ -67,7 +68,7 @@ public sealed class Gen4EventWorkspaceRenderTests
             var general = save.General.ToArray();
             var vm = Assert.IsType<CategorizedEventEditorViewModel>(main.EventFlagsEditor);
             main.SelectSaveNavigationCommand.Execute(null);
-            window = new MainWindow { DataContext = main, Width = 900, Height = 600 };
+            window = new MainWindow { DataContext = main, Width = 900, MinHeight = height, Height = height };
             window.Show();
             await PKHeX.Testing.HeadlessRenderSettling.Settle(window);
             var view = window.GetVisualDescendants().OfType<CategorizedEventEditor>().Single(control => control.IsEffectivelyVisible);
@@ -83,7 +84,10 @@ public sealed class Gen4EventWorkspaceRenderTests
                 await PKHeX.Testing.HeadlessRenderSettling.Settle(window);
                 grid.ScrollIntoView(row, grid.Columns[0]);
                 await PKHeX.Testing.HeadlessRenderSettling.Settle(window);
-                Assert.True(grid.Bounds.Height >= 40, $"Events grid height {grid.Bounds.Height} for {file}/{language}");
+                var name = $"events4-{Path.GetFileNameWithoutExtension(file)}-{language}-{(dark ? "dark" : "light")}-{kind}-{index}" + (height == 600 ? string.Empty : $"-height{height}");
+                WriteLayoutDiagnostics(window, view, grid, name);
+                Capture(window, name);
+                Assert.True(grid.Bounds.Height >= 40, $"Events grid height {grid.Bounds.Height} for {file}/{language}/{kind}/{index} at {window.ClientSize}");
                 var realized = Assert.Single(grid.GetVisualDescendants().OfType<DataGridRow>(), control => ReferenceEquals(control.DataContext, row));
                 AssertVisible(window, realized);
                 var indexInput = view.GetVisualDescendants().OfType<NumericUpDown>().Single();
@@ -98,7 +102,22 @@ public sealed class Gen4EventWorkspaceRenderTests
                     AssertVisible(window, button);
                 var details = view.FindControl<ContentControl>("EditorDetails")!;
                 AssertVisible(window, details);
-                Capture(window, $"events4-{Path.GetFileNameWithoutExtension(file)}-{language}-{(dark ? "dark" : "light")}-{kind}-{index}");
+                if (height < 600)
+                    Assert.True(details.Bounds.Height <= grid.Bounds.Height + 1, $"Details height {details.Bounds.Height} must leave the grid at least as much space ({grid.Bounds.Height})");
+                if (height < 600 && kind == EventDataKind.Work)
+                {
+                    var scroll = details.GetVisualDescendants().OfType<ScrollViewer>().Single(control => control.Content is StackPanel);
+                    scroll.ScrollToEnd();
+                    await PKHeX.Testing.HeadlessRenderSettling.Settle(window);
+                    var bounds = details.GetVisualDescendants().OfType<TextBlock>().Single(control => control.Text == row.BoundsText);
+                    var point = bounds.TranslatePoint(default, scroll)!.Value;
+                    Assert.True(point.Y >= 0 && point.Y + bounds.Bounds.Height <= scroll.Bounds.Height + 1,
+                        $"Work bounds must be reachable by scrolling: {point} + {bounds.Bounds} in {scroll.Bounds}");
+                    WriteLayoutDiagnostics(window, view, grid, name + "-details-end");
+                    Capture(window, name + "-details-end");
+                    scroll.ScrollToHome();
+                    await PKHeX.Testing.HeadlessRenderSettling.Settle(window);
+                }
             }
             vm.ApplyCommand.Execute(null);
             Assert.Equal(before, save.Data.ToArray());
@@ -122,6 +141,23 @@ public sealed class Gen4EventWorkspaceRenderTests
         }
     }
 
+    private static string CaptureDirectory => Environment.GetEnvironmentVariable("PKHEX_HEADLESS_CAPTURE_DIR") ?? Path.Combine(AppContext.BaseDirectory, "TestResults");
+
+    private static void WriteLayoutDiagnostics(Window window, CategorizedEventEditor view, DataGrid grid, string name)
+    {
+        var warning = view.GetVisualDescendants().OfType<TextBlock>().Single(control => control.Text == LocalizedStrings.Instance["Events_Warning"]);
+        var details = view.FindControl<ContentControl>("EditorDetails")!;
+        var lines = new[]
+        {
+            $"Client={window.ClientSize}; View={view.Bounds}; Grid={grid.Bounds}; Details={details.Bounds}",
+            $"Filters={view.FindControl<StackPanel>("EditorFilters")!.Bounds}",
+            $"Warning={warning.Bounds}; Font={warning.FontFamily}/{warning.FontSize}; Lines={warning.TextLayout.TextLines.Count}",
+            $"Rows={grid.GetVisualDescendants().OfType<DataGridRow>().Count()}; Culture={CultureInfo.CurrentCulture.Name}",
+        };
+        Directory.CreateDirectory(CaptureDirectory);
+        File.WriteAllLines(Path.Combine(CaptureDirectory, name + ".txt"), lines);
+    }
+
     private static void AssertVisible(Window window, Control control)
     {
         var point = control.TranslatePoint(default, window)!.Value;
@@ -137,10 +173,7 @@ public sealed class Gen4EventWorkspaceRenderTests
         frame.Save(stream);
         using var pixels = SkiaSharp.SKBitmap.Decode(stream.ToArray());
         Assert.Contains(pixels.Pixels, pixel => pixel != pixels.GetPixel(0, 0));
-        if (Environment.GetEnvironmentVariable("PKHEX_HEADLESS_CAPTURE_DIR") is { } path)
-        {
-            Directory.CreateDirectory(path);
-            frame.Save(Path.Combine(path, name + ".png"));
-        }
+        Directory.CreateDirectory(CaptureDirectory);
+        frame.Save(Path.Combine(CaptureDirectory, name + ".png"));
     }
 }
