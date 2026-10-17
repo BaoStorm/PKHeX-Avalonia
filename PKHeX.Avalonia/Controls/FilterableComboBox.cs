@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Specialized;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Utils;
 using Avalonia.Data;
 using Avalonia.Input;
 using Avalonia.Interactivity;
@@ -8,10 +10,7 @@ using PKHeX.Core;
 
 namespace PKHeX.Avalonia.Controls;
 
-/// <summary>
-/// A type-to-filter combo box built on <see cref="AutoCompleteBox"/>, bound like a value-backed
-/// ComboBox via <see cref="SelectedValue"/> against a list of <see cref="ComboItem"/>.
-/// </summary>
+/// <summary>A searchable value-backed picker. Popup highlights are drafts until accepted.</summary>
 public class FilterableComboBox : AutoCompleteBox
 {
     public static readonly StyledProperty<int> SelectedValueProperty =
@@ -24,13 +23,10 @@ public class FilterableComboBox : AutoCompleteBox
     }
 
     private bool _syncing;
-
-    // Entry currently backing SelectedValue. AutoCompleteBox drops SelectedItem while the user
-    // types, so this is what keeps the picked label when several entries share one value.
+    private bool _editing;
     private ComboItem? _committed;
+    private ISelectionAdapter? _acceptanceAdapter;
 
-    // The class adds the value-backed selection bridge only. Its visuals come from Avalonia's
-    // native Fluent AutoCompleteBox template, just like the plain search field in Batch Editor.
     protected override Type StyleKeyOverride => typeof(AutoCompleteBox);
 
     public FilterableComboBox()
@@ -40,155 +36,163 @@ public class FilterableComboBox : AutoCompleteBox
         MinimumPrefixLength = 0;
         MinimumPopulateDelay = TimeSpan.FromMilliseconds(150);
         MaxDropDownHeight = 300;
-
         SelectionChanged += OnSelectionChanged;
         GotFocus += OnGotFocus;
-        DropDownClosed += OnDropDownClosed;
+        DropDownClosed += (_, _) => RestoreDisplay();
     }
+
+    protected override ISelectionAdapter? GetSelectionAdapterPart(INameScope nameScope)
+    {
+        if (_acceptanceAdapter is not null)
+            _acceptanceAdapter.Commit -= OnAccepted;
+        var adapter = base.GetSelectionAdapterPart(nameScope);
+        // Subscribe before AutoCompleteBox attaches its own close handler. Mouse and keyboard
+        // acceptance publish the candidate before closing restores the committed display.
+        if (adapter is not null)
+            adapter.Commit += OnAccepted;
+        return _acceptanceAdapter = adapter;
+    }
+
+    private void OnAccepted(object? sender, RoutedEventArgs e) => AcceptSelection();
 
     private void OnGotFocus(object? sender, GotFocusEventArgs e)
     {
-        if (ItemsSource is null || IsDropDownOpen)
+        if (_editing || ItemsSource is null)
             return;
-
-        // AutoCompleteBox filters against its current text. Clear that transient filter so a
-        // click/focus behaves like the familiar PKHeX combo box and exposes every item immediately.
+        _editing = true;
         _syncing = true;
-        try
-        {
-            Text = string.Empty;
-        }
-        finally
-        {
-            _syncing = false;
-        }
-
+        try { Text = string.Empty; }
+        finally { _syncing = false; }
         IsDropDownOpen = true;
     }
 
-    private void OnDropDownClosed(object? sender, EventArgs e)
+    protected override void OnKeyDown(KeyEventArgs e)
     {
-        var expected = FindComboItem(SelectedValue, _committed);
-        if (expected is null || Text == expected.Text)
-            return;
-
-        _syncing = true;
-        try
+        // Do not inspect or rewrite text input: AutoCompleteBox/TextBox retain native IME
+        // composition. Native adapter Commit handles Enter. Tab accepts before focus moves.
+        if (!e.Handled && e.Key == Key.Tab)
+            AcceptSelection();
+        if (!e.Handled && !IsDropDownOpen && e.Key is Key.Down or Key.F4)
         {
-            _committed = expected;
-            SelectedItem = expected;
-            Text = expected.Text;
+            _syncing = true;
+            try { Text = string.Empty; }
+            finally { _syncing = false; }
         }
-        finally
-        {
-            _syncing = false;
-        }
+        base.OnKeyDown(e);
+        if (!e.Handled && e.Key == Key.Enter)
+            AcceptSelection();
+        if (e.Key == Key.Escape)
+            RestoreDisplay();
     }
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
         base.OnPropertyChanged(change);
-
-        if (change.Property == SelectedValueProperty || change.Property == ItemsSourceProperty)
-            SyncSelectedItemFromValue();
+        if (change.Property == ItemsSourceProperty)
+        {
+            if (change.OldValue is INotifyCollectionChanged oldItems)
+                oldItems.CollectionChanged -= OnItemsChanged;
+            if (ItemsSource is INotifyCollectionChanged newItems)
+                newItems.CollectionChanged += OnItemsChanged;
+            SynchronizeSelection();
+        }
+        else if (change.Property == SelectedValueProperty)
+            SynchronizeSelection();
     }
 
-    // Deliberately does NOT mirror raw SelectedItem -> SelectedValue: transient nulls while
-    // typing must never clobber the bound value. Only a concrete ComboItem selection commits.
+    private void OnItemsChanged(object? sender, NotifyCollectionChangedEventArgs e) => SynchronizeSelection();
+
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+        if (ItemsSource is INotifyCollectionChanged items)
+        {
+            items.CollectionChanged -= OnItemsChanged;
+            items.CollectionChanged += OnItemsChanged;
+        }
+        SynchronizeSelection();
+    }
+
+    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        if (ItemsSource is INotifyCollectionChanged items)
+            items.CollectionChanged -= OnItemsChanged;
+        _editing = false;
+        base.OnDetachedFromVisualTree(e);
+    }
+
     private void OnSelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
-        if (_syncing)
-            return;
+        // SelectedItem changes during typing and arrow navigation. Neither may write a bound
+        // model (inventory replacement clears several flags). Programmatic selection outside
+        // an editing session remains supported for existing value-only consumers.
+        if (!_syncing && !_editing && !IsDropDownOpen && SelectedItem is ComboItem entry)
+            Commit(entry);
+    }
 
-        if (SelectedItem is ComboItem ci)
+    private void AcceptSelection()
+    {
+        if (SelectedItem is ComboItem entry && ContainsEntry(entry))
+            Commit(entry);
+    }
+
+    private void Commit(ComboItem entry)
+    {
+        _syncing = true;
+        try
         {
-            _committed = ci;
-            _syncing = true;
-            try
-            {
-                SelectedValue = ci.Value;
-            }
-            finally
-            {
-                _syncing = false;
-            }
+            SetCurrentValue(SelectedValueProperty, entry.Value);
+            _committed = entry;
         }
+        finally { _syncing = false; }
     }
 
     protected override void OnLostFocus(RoutedEventArgs e)
     {
         base.OnLostFocus(e);
-
-        var expected = FindComboItem(SelectedValue, _committed);
-        if (expected is null)
-        {
-            if (!string.IsNullOrEmpty(Text))
-                Text = string.Empty;
+        if (IsKeyboardFocusWithin)
             return;
-        }
-
-        if (Text != expected.Text)
-        {
-            _syncing = true;
-            try
-            {
-                _committed = expected;
-                SelectedItem = expected;
-                Text = expected.Text;
-            }
-            finally
-            {
-                _syncing = false;
-            }
-        }
+        _editing = false;
+        RestoreDisplay();
     }
 
-    private void SyncSelectedItemFromValue()
+    private void SynchronizeSelection()
     {
         if (_syncing)
             return;
+        var entry = _committed;
+        if (entry is null || !ContainsEntry(entry) || entry.Value != SelectedValue)
+            entry = FindEntry(SelectedValue);
+        _committed = entry;
+        RestoreDisplay();
+    }
 
+    private void RestoreDisplay()
+    {
         _syncing = true;
         try
         {
-            var match = FindComboItem(SelectedValue);
-            _committed = match;
-            if (match is null)
-            {
-                SelectedItem = null;
-                Text = string.Empty;
-                return;
-            }
-
-            SelectedItem = match;
-            Text = match.Text;
+            SelectedItem = _committed;
+            Text = _committed?.Text ?? string.Empty;
         }
-        finally
-        {
-            _syncing = false;
-        }
+        finally { _syncing = false; }
     }
 
-    // Entries can share a value with different labels (ability slots "X (1)" / "X (2)"). When the
-    // preferred entry is still in the list, return it so the picked label does not snap back to
-    // the first duplicate the way a value-only lookup would.
-    private ComboItem? FindComboItem(int value, ComboItem? preferred = null)
+    private bool ContainsEntry(ComboItem entry)
     {
-        if (ItemsSource is null)
-            return null;
+        if (ItemsSource is not null)
+            foreach (var item in ItemsSource)
+                if (ReferenceEquals(item, entry))
+                    return true;
+        return false;
+    }
 
-        ComboItem? first = null;
-        foreach (var item in ItemsSource)
-        {
-            if (item is not ComboItem ci || ci.Value != value)
-                continue;
-
-            if (ReferenceEquals(ci, preferred))
-                return ci;
-
-            first ??= ci;
-        }
-
-        return first;
+    private ComboItem? FindEntry(int value)
+    {
+        if (ItemsSource is not null)
+            foreach (var item in ItemsSource)
+                if (item is ComboItem entry && entry.Value == value)
+                    return entry;
+        return null;
     }
 }

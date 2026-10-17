@@ -1,6 +1,7 @@
 
 using System;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using PKHeX.Core;
@@ -18,6 +19,7 @@ public partial class PokemonEditorViewModel : ViewModelBase
     private readonly bool _haXMode;
     private bool _isLoading; // Flag to prevent modifying _pk during load
     private bool _abilitySelectionChanged;
+    private bool _synchronizingAbilityChoice;
 
     // Data sources (mostly filtered by SaveFile context)
     [ObservableProperty] private IReadOnlyList<ComboItem> _speciesList;
@@ -66,7 +68,8 @@ public partial class PokemonEditorViewModel : ViewModelBase
     public string RelearnMove3AutomationName => GetMoveAutomationName("PokemonEditor_RelearnMoves", 3);
     public string RelearnMove4AutomationName => GetMoveAutomationName("PokemonEditor_RelearnMoves", 4);
 
-    public string AbilityTooltip => GetComboTooltip(AbilityList, Ability);
+    public string AbilityTooltip => SelectedAbilityIndex >= 0 && SelectedAbilityIndex < AbilityList.Count
+        ? AbilityList[SelectedAbilityIndex].Text : GetComboTooltip(AbilityList, Ability);
     public string HeldItemTooltip => GetComboTooltip(ItemList, HeldItem);
     public string BallTooltip => GetComboTooltip(BallList, Ball);
     public string LanguageTooltip => GetComboTooltip(LanguageList, Language);
@@ -149,6 +152,14 @@ public partial class PokemonEditorViewModel : ViewModelBase
     // Dynamic lists
     [ObservableProperty]
     private ObservableCollection<ComboItem> _abilityList = [];
+
+    // The raw Ability/AbilityList API remains ID-based. The picker uses list indices so
+    // identical ability IDs in slots 1, 2 and H remain distinct choices.
+    [ObservableProperty]
+    private IReadOnlyList<ComboItem> _abilityChoices = [];
+
+    [ObservableProperty]
+    private int _selectedAbilityIndex = -1;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasForms))]
@@ -482,6 +493,7 @@ public partial class PokemonEditorViewModel : ViewModelBase
 
             // Misc
             AbilityNumber = _pk.AbilityNumber;
+            SynchronizeAbilityChoice(useStoredSlot: true);
             HpType = _pk.HPType;
             IsPokerusInfected = _pk.IsPokerusInfected;
             IsPokerusCured = _pk.IsPokerusCured;
@@ -685,9 +697,59 @@ public partial class PokemonEditorViewModel : ViewModelBase
     partial void OnNatureChanged(int value) { if (!_isLoading) { RecalculateStats(); Validate(); } }
     partial void OnAbilityChanged(int value)
     {
-        if (_isLoading) return;
+        if (_isLoading || _synchronizingAbilityChoice) return;
+        SynchronizeAbilityChoice();
         _abilitySelectionChanged = true;
         Validate();
+    }
+
+    partial void OnSelectedAbilityIndexChanged(int value)
+    {
+        if (_isLoading || _synchronizingAbilityChoice || value < 0 || value >= AbilityList.Count)
+            return;
+        _synchronizingAbilityChoice = true;
+        try { Ability = AbilityList[value].Value; }
+        finally { _synchronizingAbilityChoice = false; }
+        OnPropertyChanged(nameof(AbilityTooltip));
+        _abilitySelectionChanged = true;
+        Validate();
+    }
+
+    partial void OnAbilityListChanging(ObservableCollection<ComboItem> value)
+    {
+        AbilityList.CollectionChanged -= OnAbilityEntriesChanged;
+    }
+
+    partial void OnAbilityListChanged(ObservableCollection<ComboItem> value)
+    {
+        value.CollectionChanged += OnAbilityEntriesChanged;
+        RebuildAbilityChoices();
+    }
+
+    private void OnAbilityEntriesChanged(object? sender, NotifyCollectionChangedEventArgs e) => RebuildAbilityChoices();
+
+    private void RebuildAbilityChoices()
+    {
+        AbilityChoices = AbilityList.Select((entry, index) => new ComboItem(entry.Text, index)).ToArray();
+        if (!_isLoading)
+            SynchronizeAbilityChoice(preserveIndex: true);
+    }
+
+    private void SynchronizeAbilityChoice(bool useStoredSlot = false, bool preserveIndex = false)
+    {
+        var preferred = useStoredSlot && !_haXMode ? _pk.AbilityNumber switch
+        {
+            1 => 0,
+            2 => 1,
+            4 => 2,
+            _ => -1,
+        } : preserveIndex ? SelectedAbilityIndex : -1;
+        var index = preferred >= 0 && preferred < AbilityList.Count && AbilityList[preferred].Value == Ability
+            ? preferred : AbilityList.ToList().FindIndex(entry => entry.Value == Ability);
+        _synchronizingAbilityChoice = true;
+        try { SelectedAbilityIndex = index; }
+        finally { _synchronizingAbilityChoice = false; }
+        OnPropertyChanged(nameof(AbilityTooltip));
     }
     partial void OnHeldItemChanged(int value)
     {
@@ -749,7 +811,9 @@ public partial class PokemonEditorViewModel : ViewModelBase
     /// </summary>
     private void ApplyAbility()
     {
-        var abilityIndex = _pk.PersonalInfo.GetIndexOfAbility(Ability);
+        var abilityIndex = !_haXMode && SelectedAbilityIndex >= 0 && SelectedAbilityIndex < _pk.PersonalInfo.AbilityCount
+            && _pk.PersonalInfo.GetAbilityAtIndex(SelectedAbilityIndex) == Ability
+            ? SelectedAbilityIndex : _pk.PersonalInfo.GetIndexOfAbility(Ability);
         if (abilityIndex >= 0)
             _pk.RefreshAbility(abilityIndex);
         else
