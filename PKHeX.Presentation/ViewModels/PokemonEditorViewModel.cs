@@ -173,6 +173,7 @@ public partial class PokemonEditorViewModel : ViewModelBase
 
     // Basic Info
     [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(RerollPidCommand))]
     [NotifyPropertyChangedFor(nameof(Title), nameof(Sprite), nameof(FormList), nameof(AbilityList), nameof(Ability), nameof(Stat_HP), nameof(Stat_ATK), nameof(Stat_DEF), nameof(Stat_SPA), nameof(Stat_SPD), nameof(Stat_SPE), nameof(Base_HP), nameof(Base_ATK), nameof(Base_DEF), nameof(Base_SPA), nameof(Base_SPD), nameof(Base_SPE), nameof(ShowLegalityStatus))]
     private int _species;
 
@@ -186,6 +187,7 @@ public partial class PokemonEditorViewModel : ViewModelBase
     private uint _id32;
 
     [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(RerollPidCommand))]
     [NotifyPropertyChangedFor(nameof(Sprite), nameof(Stat_HP), nameof(Stat_ATK), nameof(Stat_DEF), nameof(Stat_SPA), nameof(Stat_SPD), nameof(Stat_SPE), nameof(Base_HP), nameof(Base_ATK), nameof(Base_DEF), nameof(Base_SPA), nameof(Base_SPD), nameof(Base_SPE))]
     private int _form;
 
@@ -197,6 +199,7 @@ public partial class PokemonEditorViewModel : ViewModelBase
     private int _level;
 
     [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(RerollPidCommand))]
     [NotifyPropertyChangedFor(nameof(Stat_HP), nameof(Stat_ATK), nameof(Stat_DEF), nameof(Stat_SPA), nameof(Stat_SPD), nameof(Stat_SPE))]
     private int _nature;
 
@@ -211,6 +214,7 @@ public partial class PokemonEditorViewModel : ViewModelBase
     private int _ball;
 
     [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(RerollPidCommand))]
     private int _gender;
 
     [ObservableProperty]
@@ -565,6 +569,7 @@ public partial class PokemonEditorViewModel : ViewModelBase
         LoadRibbons();
         OnPropertyChanged(nameof(CanEditHandlingTrainer));
         OnPropertyChanged(nameof(HandlerList));
+        RerollPidCommand.NotifyCanExecuteChanged();
     }
 
     [ObservableProperty]
@@ -963,11 +968,32 @@ public partial class PokemonEditorViewModel : ViewModelBase
         IsShiny = !IsShiny;
     }
 
-    [RelayCommand]
+    private bool CanRerollPid()
+    {
+        // Match EntityPID's early return before applying any legacy-only constraints.
+        var origin = (GameVersion)OriginGame;
+        if (origin is 0 or >= GameVersion.X)
+            return true;
+
+        // The legacy generator searches until every constraint matches. Reject inputs
+        // without a solution before entering that unbounded search, without fixing them.
+        if (Species <= 0 || Species > PersonalTable.B2W2.MaxSpeciesID)
+            return false;
+        if ((origin.IsGen3() || origin.IsGen4()) && (uint)Nature >= 25)
+            return false;
+        if (origin is GameVersion.FR or GameVersion.LG && Species == (int)Core.Species.Unown && (uint)Form >= 28)
+            return false;
+        return PersonalInfo.IsSingleGender(PersonalTable.B2W2[Species].Gender) || Gender is 0 or 1;
+    }
+
+    [RelayCommand(CanExecute = nameof(CanRerollPid))]
     private void RerollPid()
     {
+        // ICommand.Execute may be invoked directly even when CanExecute is false.
+        if (!CanRerollPid())
+            return;
         var rnd = new Random();
-        var newPid = EntityPID.GetRandomPID(rnd, (ushort)Species, (byte)Gender, _pk.Version, (Nature)Nature, (byte)Form, _pk.PID);
+        var newPid = EntityPID.GetRandomPID(rnd, (ushort)Species, (byte)Gender, (GameVersion)OriginGame, (Nature)Nature, (byte)Form, _pk.PID);
         _pk.PID = newPid;
         _isLoading = true;
         Pid = newPid.ToString("X8");
