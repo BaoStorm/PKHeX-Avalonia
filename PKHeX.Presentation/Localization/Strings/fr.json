@@ -1218,6 +1218,7 @@
   "MailBoxEditor_Tid": "NID :",
   "MailBoxEditor_Sid": "NSID :",
   "MailBoxEditor_Language": "Langue :",
+  "MailBoxEditor_International": "International",
   "MailBoxEditor_MailDetails": "Détails du courrier",
   "MailBoxEditor_MailType": "Type de courrier :",
   "MailBoxEditor_AppearPkm": "Apparence du PKM :",

@@ -1218,6 +1218,7 @@
   "MailBoxEditor_Tid": "TID:",
   "MailBoxEditor_Sid": "SID:",
   "MailBoxEditor_Language": "言語:",
+  "MailBoxEditor_International": "国際版",
   "MailBoxEditor_MailDetails": "メール詳細",
   "MailBoxEditor_MailType": "メールタイプ:",
   "MailBoxEditor_AppearPkm": "表示ポケモン:",
