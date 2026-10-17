@@ -1,6 +1,7 @@
 
 using System;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using PKHeX.Core;
@@ -18,6 +19,7 @@ public partial class PokemonEditorViewModel : ViewModelBase
     private readonly bool _haXMode;
     private bool _isLoading; // Flag to prevent modifying _pk during load
     private bool _abilitySelectionChanged;
+    private bool _synchronizingAbilityChoice;
 
     // Data sources (mostly filtered by SaveFile context)
     [ObservableProperty] private IReadOnlyList<ComboItem> _speciesList;
@@ -66,7 +68,8 @@ public partial class PokemonEditorViewModel : ViewModelBase
     public string RelearnMove3AutomationName => GetMoveAutomationName("PokemonEditor_RelearnMoves", 3);
     public string RelearnMove4AutomationName => GetMoveAutomationName("PokemonEditor_RelearnMoves", 4);
 
-    public string AbilityTooltip => GetComboTooltip(AbilityList, Ability);
+    public string AbilityTooltip => SelectedAbilityIndex >= 0 && SelectedAbilityIndex < AbilityList.Count
+        ? AbilityList[SelectedAbilityIndex].Text : GetComboTooltip(AbilityList, Ability);
     public string HeldItemTooltip => GetComboTooltip(ItemList, HeldItem);
     public string BallTooltip => GetComboTooltip(BallList, Ball);
     public string LanguageTooltip => GetComboTooltip(LanguageList, Language);
@@ -149,6 +152,14 @@ public partial class PokemonEditorViewModel : ViewModelBase
     // Dynamic lists
     [ObservableProperty]
     private ObservableCollection<ComboItem> _abilityList = [];
+
+    // The raw Ability/AbilityList API remains ID-based. The picker uses list indices so
+    // identical ability IDs in slots 1, 2 and H remain distinct choices.
+    [ObservableProperty]
+    private IReadOnlyList<ComboItem> _abilityChoices = [];
+
+    [ObservableProperty]
+    private int _selectedAbilityIndex = -1;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasForms))]
@@ -482,6 +493,7 @@ public partial class PokemonEditorViewModel : ViewModelBase
 
             // Misc
             AbilityNumber = _pk.AbilityNumber;
+            SynchronizeAbilityChoice(useStoredSlot: true);
             HpType = _pk.HPType;
             IsPokerusInfected = _pk.IsPokerusInfected;
             IsPokerusCured = _pk.IsPokerusCured;
@@ -685,9 +697,81 @@ public partial class PokemonEditorViewModel : ViewModelBase
     partial void OnNatureChanged(int value) { if (!_isLoading) { RecalculateStats(); Validate(); } }
     partial void OnAbilityChanged(int value)
     {
-        if (_isLoading) return;
+        if (_isLoading || _synchronizingAbilityChoice) return;
+        SynchronizeAbilityChoice();
         _abilitySelectionChanged = true;
         Validate();
+    }
+
+    partial void OnSelectedAbilityIndexChanged(int value)
+    {
+        if (_isLoading || _synchronizingAbilityChoice)
+            return;
+        if (!CanChooseAbilityIndex(value))
+        {
+            SynchronizeAbilityChoice(useStoredSlot: true);
+            return;
+        }
+        _synchronizingAbilityChoice = true;
+        try { Ability = AbilityList[value].Value; }
+        finally { _synchronizingAbilityChoice = false; }
+        OnPropertyChanged(nameof(AbilityTooltip));
+        _abilitySelectionChanged = true;
+        Validate();
+    }
+
+    partial void OnAbilityListChanging(ObservableCollection<ComboItem> value)
+    {
+        AbilityList.CollectionChanged -= OnAbilityEntriesChanged;
+    }
+
+    partial void OnAbilityListChanged(ObservableCollection<ComboItem> value)
+    {
+        value.CollectionChanged += OnAbilityEntriesChanged;
+        RebuildAbilityChoices();
+    }
+
+    private void OnAbilityEntriesChanged(object? sender, NotifyCollectionChangedEventArgs e) => RebuildAbilityChoices();
+
+    private void RebuildAbilityChoices()
+    {
+        AbilityChoices = AbilityList.Select((entry, index) => new ComboItem(entry.Text, index))
+            .Where(entry => CanChooseAbilityIndex(entry.Value)).ToArray();
+        if (!_isLoading)
+            SynchronizeAbilityChoice(preserveIndex: true);
+    }
+
+    private bool CanChooseAbilityIndex(int index)
+    {
+        if (index < 0 || index >= AbilityList.Count)
+            return false;
+        if (_haXMode || _pk is not G3PKM || index != 1)
+            return true;
+        // Normal Gen 3 single-ability species cannot retain a second selection through
+        // Core's RefreshAbility. Preserve an already stored bit, including the three
+        // species for which Core deliberately permits either identical-ability bit.
+        return AbilityList[0].Value != AbilityList[1].Value || IsGen3AbilityBitException
+            || _pk.AbilityNumber == 2;
+    }
+
+    private bool IsGen3AbilityBitException => _pk is G3PKM
+        && Species is (int)Core.Species.Granbull or (int)Core.Species.Vibrava or (int)Core.Species.Flygon;
+
+    private void SynchronizeAbilityChoice(bool useStoredSlot = false, bool preserveIndex = false)
+    {
+        var preferred = useStoredSlot && !_haXMode ? _pk.AbilityNumber switch
+        {
+            1 => 0,
+            2 => 1,
+            4 => 2,
+            _ => -1,
+        } : preserveIndex ? SelectedAbilityIndex : -1;
+        var index = CanChooseAbilityIndex(preferred) && AbilityList[preferred].Value == Ability
+            ? preferred : AbilityList.ToList().FindIndex(entry => entry.Value == Ability);
+        _synchronizingAbilityChoice = true;
+        try { SelectedAbilityIndex = index; }
+        finally { _synchronizingAbilityChoice = false; }
+        OnPropertyChanged(nameof(AbilityTooltip));
     }
     partial void OnHeldItemChanged(int value)
     {
@@ -749,13 +833,65 @@ public partial class PokemonEditorViewModel : ViewModelBase
     /// </summary>
     private void ApplyAbility()
     {
-        var abilityIndex = _pk.PersonalInfo.GetIndexOfAbility(Ability);
+        var abilityIndex = !_haXMode && SelectedAbilityIndex >= 0 && SelectedAbilityIndex < _pk.PersonalInfo.AbilityCount
+            && _pk.PersonalInfo.GetAbilityAtIndex(SelectedAbilityIndex) == Ability
+            ? SelectedAbilityIndex : _pk.PersonalInfo.GetIndexOfAbility(Ability);
+        var previousPid = _pk.PID;
         if (abilityIndex >= 0)
-            _pk.RefreshAbility(abilityIndex);
+        {
+            var changePid = !_haXMode && abilityIndex < 2 && _pk.Format is 3 or 4 or 5
+                && _pk.Version != GameVersion.CXD && _pk.PIDAbility >= 0 && _pk.PIDAbility != abilityIndex;
+            if (changePid)
+            {
+                // Core's generator intentionally searches until all legacy constraints
+                // match. Reject infeasible imported/user-edited values before that search.
+                if (!CanGenerateAbilityPid())
+                {
+                    _synchronizingAbilityChoice = true;
+                    try { Ability = _pk.Ability; }
+                    finally { _synchronizingAbilityChoice = false; }
+                    _abilitySelectionChanged = false;
+                    AbilityNumber = _pk.AbilityNumber;
+                    SynchronizeAbilityChoice(useStoredSlot: true);
+                    return;
+                }
+                _pk.Gender = (byte)Gender;
+                _pk.SetAbilityIndex(abilityIndex);
+            }
+            // Core preserves these species' existing bits in RefreshAbility. Explicit
+            // edits still need the bit itself, after any mainline PID correction above.
+            if (IsGen3AbilityBitException)
+                _pk.AbilityNumber = 1 << abilityIndex;
+            else if (!changePid)
+                _pk.RefreshAbility(abilityIndex);
+        }
         else
             _pk.Ability = Ability;
 
+        if (_pk.PID != previousPid)
+        {
+            // The legacy slot is derived from PID. Preserve the requested shiny state
+            // before syncing the text fields that PreparePKM parses later in this call.
+            if (IsShiny && !_pk.IsShiny) _pk.SetShiny();
+            else if (!IsShiny && _pk.IsShiny) _pk.SetUnshiny();
+            SyncPidFieldsFromEntity();
+        }
         AbilityNumber = _pk.AbilityNumber;
+        if (!_haXMode)
+        {
+            SynchronizeAbilityChoice(useStoredSlot: true);
+            RebuildAbilityChoices();
+        }
+    }
+
+    private bool CanGenerateAbilityPid()
+    {
+        if (_pk.Species == 0 || _pk.Species > _pk.MaxSpeciesID || !(_pk.Gen3 || _pk.Gen4 || _pk.Gen5))
+            return false;
+        if ((_pk.Gen3 || _pk.Gen4) && (uint)_pk.Nature >= 25)
+            return false;
+        var ratio = PersonalTable.B2W2[_pk.Species].Gender;
+        return PersonalInfo.IsSingleGender(ratio) || Gender is 0 or 1;
     }
 
     private void UpdateFormList(bool preserveSelection = true)
