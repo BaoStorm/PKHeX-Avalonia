@@ -42,7 +42,7 @@
                                 </ComboBox>
                                 <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,0,0,6">
                                     <TextBlock Text="{loc:Loc Events_Index}" VerticalAlignment="Center" />
-                                    <NumericUpDown Value="{Binding SelectedIndex}" Minimum="0" Maximum="{Binding MaxIndex}" Width="100"
+                                    <NumericUpDown Value="{Binding SelectedIndex}" Minimum="0" Maximum="{Binding MaxIndex}" Width="140"
                                                    FormatString="0" AutomationProperties.Name="{loc:Loc Events_Index}" />
                                 </StackPanel>
                             </WrapPanel>

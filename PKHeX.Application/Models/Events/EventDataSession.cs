@@ -64,7 +64,7 @@ public sealed class EventDataField
     }
 }
 
-/// <summary>Game-aware Gen 7/LGPE/BDSP event metadata and transactional storage.</summary>
+/// <summary>Game-aware Gen 4/Gen 7/LGPE/BDSP event metadata and transactional storage.</summary>
 public sealed class EventDataSession
 {
     private readonly SaveFile _source;
@@ -80,13 +80,14 @@ public sealed class EventDataSession
         finally { source.State.Edited = edited; }
         switch (_snapshot)
         {
+            case SAV4 four: LoadFour(four, (SAV4)source); break;
             case SAV7 seven: LoadSeven(seven, (SAV7)source); break;
             case SAV7b letsGo: LoadLetsGo(letsGo, (SAV7b)source); break;
             case SAV8BS bdsp: LoadBdsp(bdsp, (SAV8BS)source); break;
         }
     }
 
-    public static EventDataSession? Create(SaveFile source) => source is SAV7 or SAV7b or SAV8BS
+    public static EventDataSession? Create(SaveFile source) => source is SAV4 or SAV7 or SAV7b or SAV8BS
         ? new EventDataSession(source) : null;
 
     public void Reset()
@@ -131,6 +132,34 @@ public sealed class EventDataSession
 
     private static IReadOnlyList<EventDataOption> Options(NamedEventWork? label) => label?.PredefinedValues
         .Where(option => !option.IsCustom).Select(option => new EventDataOption(option.Name, option.Value)).ToArray() ?? [];
+
+    private void LoadFour(SAV4 snapshot, SAV4 source)
+    {
+        var game = snapshot switch
+        {
+            SAV4DP => "dp",
+            SAV4Pt => "pt",
+            SAV4HGSS => "hgss",
+            _ => throw new ArgumentException(nameof(snapshot)),
+        };
+        var labels = new EventLabelCollection(game, snapshot.EventFlagCount, snapshot.EventWorkCount);
+        var flags = labels.Flag.ToDictionary(f => f.Index);
+        var values = labels.Work.ToDictionary(f => f.Index);
+        foreach (int index in Enumerable.Range(0, snapshot.EventFlagCount))
+        {
+            flags.TryGetValue(index, out var label);
+            _fields.Add(new(EventDataKind.Flag, index, label?.Name ?? string.Empty, label?.Type.ToString() ?? "None", 0, 1,
+                () => snapshot.GetEventFlag(index) ? 1 : 0, v => snapshot.SetEventFlag(index, v != 0),
+                v => source.SetEventFlag(index, v != 0)));
+        }
+        foreach (int index in Enumerable.Range(0, snapshot.EventWorkCount))
+        {
+            values.TryGetValue(index, out var label);
+            _fields.Add(new(EventDataKind.Work, index, label?.Name ?? string.Empty, label?.Type.ToString() ?? "None", 0, ushort.MaxValue,
+                () => snapshot.GetWork(index), v => snapshot.SetWork(index, (ushort)v),
+                v => source.SetWork(index, (ushort)v), Options(label)));
+        }
+    }
 
     private void LoadSeven(SAV7 snapshot, SAV7 source)
     {
