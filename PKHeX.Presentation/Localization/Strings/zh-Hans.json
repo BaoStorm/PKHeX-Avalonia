@@ -1222,6 +1222,7 @@
   "MailBoxEditor_Tid": "训练家 ID：",
   "MailBoxEditor_Sid": "隐藏 ID：",
   "MailBoxEditor_Language": "语言：",
+  "MailBoxEditor_International": "国际版",
   "MailBoxEditor_MailDetails": "邮件详情",
   "MailBoxEditor_MailType": "邮件类型：",
   "MailBoxEditor_AppearPkm": "出现的宝可梦：",

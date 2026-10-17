@@ -1222,6 +1222,7 @@
   "MailBoxEditor_Tid": "TID：",
   "MailBoxEditor_Sid": "SID：",
   "MailBoxEditor_Language": "語言：",
+  "MailBoxEditor_International": "國際版",
   "MailBoxEditor_MailDetails": "信件詳細資訊",
   "MailBoxEditor_MailType": "信件類型：",
   "MailBoxEditor_AppearPkm": "顯示的寶可夢：",

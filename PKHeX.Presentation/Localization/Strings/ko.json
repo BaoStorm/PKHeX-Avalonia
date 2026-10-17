@@ -1222,6 +1222,7 @@
   "MailBoxEditor_Tid": "TID:",
   "MailBoxEditor_Sid": "SID:",
   "MailBoxEditor_Language": "언어:",
+  "MailBoxEditor_International": "국제판",
   "MailBoxEditor_MailDetails": "마을편지 세부 정보",
   "MailBoxEditor_MailType": "마을편지 유형:",
   "MailBoxEditor_AppearPkm": "표시될 포켓몬:",
