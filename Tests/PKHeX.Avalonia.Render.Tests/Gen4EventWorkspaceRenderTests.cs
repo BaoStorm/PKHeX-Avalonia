@@ -30,6 +30,7 @@ public sealed class Gen4EventWorkspaceRenderTests
     [InlineData("gen4_platinum.sav", "pt-BR", true, 600, 14)]
     [InlineData("gen4_heartgold.sav", "ja", false, 570, 14)]
     [InlineData("gen4_heartgold.sav", "ja", false, 570, 18)]
+    [InlineData("gen4_heartgold.sav", "ja", false, 600, 22)]
     public async Task OriginalDsEventsRenderInTheCompactMainWorkspaceWithReachableLabelsAndApply(string file, string language, bool dark, int height, double fontSize)
     {
         var previousLanguage = LocalizedStrings.Instance.CurrentLanguage;
@@ -78,6 +79,8 @@ public sealed class Gen4EventWorkspaceRenderTests
             view.FontSize = fontSize;
             await PKHeX.Testing.HeadlessRenderSettling.Settle(window);
             var grid = view.FindControl<DataGrid>("EventGrid")!;
+            Assert.Equal(fontSize, grid.FontSize);
+            Assert.Equal(view.FontWeight, grid.FontWeight);
 
             foreach (var (kind, index) in new[] { (EventDataKind.Flag, 214), (EventDataKind.Flag, 304), (EventDataKind.Work, save is SAV4HGSS ? 304 : 64), (EventDataKind.Flag, save.EventFlagCount - 1) })
             {
@@ -96,6 +99,7 @@ public sealed class Gen4EventWorkspaceRenderTests
                 Assert.True(grid.Bounds.Height >= 40, $"Events grid height {grid.Bounds.Height} for {file}/{language}/{kind}/{index} at {window.ClientSize}");
                 var realized = Assert.Single(grid.GetVisualDescendants().OfType<DataGridRow>(), control => ReferenceEquals(control.DataContext, row));
                 AssertVisible(window, realized);
+                AssertInsideVerticalClips(realized);
                 var rowTop = realized.TranslatePoint(default, grid)!.Value.Y;
                 Assert.True(rowTop >= 0 && rowTop + realized.Bounds.Height <= grid.Bounds.Height + 1,
                     $"The selected event row must fit fully inside the table: {rowTop} + {realized.Bounds.Height} in {grid.Bounds.Height}");
@@ -107,7 +111,8 @@ public sealed class Gen4EventWorkspaceRenderTests
                 Assert.True(line.WidthIncludingTrailingWhitespace <= viewport.Viewport.Width + 1,
                     $"Index {index} text width {line.WidthIncludingTrailingWhitespace} exceeds viewport {viewport.Viewport.Width}");
                 Assert.NotEmpty(row.Name);
-                foreach (var button in view.GetVisualDescendants().OfType<Button>().Where(button => ReferenceEquals(button.Command, vm.ApplyCommand) || ReferenceEquals(button.Command, vm.CancelCommand) || ReferenceEquals(button.Command, vm.ResetCommand)))
+                var footerButtons = view.GetVisualDescendants().OfType<Button>().Where(button => ReferenceEquals(button.Command, vm.ApplyCommand) || ReferenceEquals(button.Command, vm.CancelCommand) || ReferenceEquals(button.Command, vm.ResetCommand)).ToArray();
+                foreach (var button in footerButtons)
                 {
                     AssertVisible(window, button);
                     var position = button.TranslatePoint(default, view)!.Value;
@@ -116,18 +121,28 @@ public sealed class Gen4EventWorkspaceRenderTests
                 }
                 var details = view.FindControl<ContentControl>("EditorDetails")!;
                 AssertVisible(window, details);
+                var footerTop = footerButtons.Min(button => button.TranslatePoint(default, window)!.Value.Y);
+                foreach (var content in new Control[] { grid, details })
+                {
+                    AssertInsideVerticalClips(content);
+                    var bottom = content.TranslatePoint(new Point(0, content.Bounds.Height), window)!.Value.Y;
+                    Assert.True(bottom <= footerTop + 1, $"Event content bottom {bottom} must stay above footer {footerTop}");
+                }
                 if (height < 600)
                     Assert.True(details.Bounds.Height <= grid.Bounds.Height + 1, $"Details height {details.Bounds.Height} must leave the grid at least as much space ({grid.Bounds.Height})");
-                if (height < 600 && kind == EventDataKind.Work)
+                if ((height < 600 || fontSize > 14) && kind == EventDataKind.Work)
                 {
                     var scroll = details.GetVisualDescendants().OfType<ScrollViewer>().Single(control => control.Content is StackPanel);
                     var input = details.GetVisualDescendants().OfType<TextBox>().Single(control => control.IsEffectivelyVisible);
+                    Assert.Equal(fontSize, input.FontSize);
+                    Assert.Equal(view.FontWeight, input.FontWeight);
                     Assert.True(input.Focus(NavigationMethod.Tab));
                     await PKHeX.Testing.HeadlessRenderSettling.Settle(window);
                     var inputClip = input.GetVisualAncestors().OfType<ScrollContentPresenter>().First();
                     var inputPoint = input.TranslatePoint(default, inputClip)!.Value;
                     Assert.True(inputPoint.Y >= 0 && inputPoint.Y + input.Bounds.Height <= inputClip.Viewport.Height + 1,
                         $"Keyboard-focused work input must fit completely: {inputPoint} + {input.Bounds} in {inputClip.Viewport}");
+                    AssertInsideVerticalClips(input);
                     WriteLayoutDiagnostics(window, view, grid, name + "-input-focused");
                     Capture(window, name + "-input-focused");
                     scroll.ScrollToEnd();
@@ -144,6 +159,7 @@ public sealed class Gen4EventWorkspaceRenderTests
                 if (fontSize > 14)
                 {
                     var warningScroll = view.FindControl<ScrollViewer>("EventWarningScroll")!;
+                    var originalWarningLimit = warningScroll.MaxHeight;
                     // Force overflow even when the host's fallback CJK font is narrower
                     // than macOS's, and exercise the actual keyboard scroll route.
                     warningScroll.MaxHeight = fontSize;
@@ -155,7 +171,7 @@ public sealed class Gen4EventWorkspaceRenderTests
                     await PKHeX.Testing.HeadlessRenderSettling.Settle(window);
                     Assert.True(warningScroll.Offset.Y > 0, "Focused warning must scroll with PageDown");
                     warningScroll.ScrollToHome();
-                    warningScroll.MaxHeight = 60;
+                    warningScroll.MaxHeight = originalWarningLimit;
                     await PKHeX.Testing.HeadlessRenderSettling.Settle(window);
                 }
             }
@@ -187,13 +203,16 @@ public sealed class Gen4EventWorkspaceRenderTests
     {
         var warning = view.GetVisualDescendants().OfType<TextBlock>().Single(control => control.Text == LocalizedStrings.Instance["Events_Warning"]);
         var details = view.FindControl<ContentControl>("EditorDetails")!;
+        var selectedRow = grid.GetVisualDescendants().OfType<DataGridRow>().SingleOrDefault(row => ReferenceEquals(row.DataContext, grid.SelectedItem));
+        var selectedName = selectedRow?.GetVisualDescendants().OfType<TextBlock>().FirstOrDefault(text => text.Text == (grid.SelectedItem as EventDataRow)?.Name);
         var lines = new[]
         {
             $"Client={window.ClientSize}; View={view.Bounds}; Grid={grid.Bounds}; Details={details.Bounds}",
             $"Filters={view.FindControl<StackPanel>("EditorFilters")!.Bounds}",
             $"Warning={warning.Bounds}; Font={warning.FontFamily}/{warning.FontSize}; Lines={warning.TextLayout.TextLines.Count}",
-            $"Rows={grid.GetVisualDescendants().OfType<DataGridRow>().Count()}; Culture={CultureInfo.CurrentCulture.Name}",
+            $"Rows={grid.GetVisualDescendants().OfType<DataGridRow>().Count()}; Culture={CultureInfo.CurrentCulture.Name}; SelectedRow={selectedRow?.Bounds}; RowFont={selectedName?.FontSize}",
             $"ViewOrigin={view.TranslatePoint(default, window)}; WarningScroll={view.FindControl<ScrollViewer>("EventWarningScroll")!.Bounds}",
+            $"OuterPadding={((Border)view.Content!).Padding}; TabPadding={view.GetVisualDescendants().OfType<TabControl>().Single().Padding}; Header={((TabItem)view.GetVisualDescendants().OfType<TabControl>().Single().Items[0]!).Bounds}; DataFont={grid.FontSize}/{grid.FontWeight}",
         };
         Directory.CreateDirectory(CaptureDirectory);
         File.WriteAllLines(Path.Combine(CaptureDirectory, name + ".txt"), lines);
@@ -204,6 +223,17 @@ public sealed class Gen4EventWorkspaceRenderTests
         var point = control.TranslatePoint(default, window)!.Value;
         Assert.True(point.X >= 0 && point.Y >= 0 && point.X + control.Bounds.Width <= window.ClientSize.Width + 1 && point.Y + control.Bounds.Height <= window.ClientSize.Height + 1,
             $"{control.GetType().Name} at {point} + {control.Bounds.Size} outside {window.ClientSize}");
+    }
+
+    private static void AssertInsideVerticalClips(Control control)
+    {
+        foreach (var clip in control.GetVisualAncestors().Where(visual => visual.ClipToBounds))
+        {
+            var point = control.TranslatePoint(default, clip)!.Value;
+            var bounds = clip.Clip?.Bounds ?? new Rect(clip.Bounds.Size);
+            Assert.True(point.Y >= bounds.Top - 1 && point.Y + control.Bounds.Height <= bounds.Bottom + 1,
+                $"{control.GetType().Name} [{point.Y}, {point.Y + control.Bounds.Height}] crosses {clip.GetType().Name} clip {bounds}");
+        }
     }
 
     private static void Capture(Window window, string name)
