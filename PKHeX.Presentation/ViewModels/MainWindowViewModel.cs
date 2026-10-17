@@ -310,7 +310,7 @@ public partial class MainWindowViewModel : ViewModelBase
                 (EventFlagsEditor as IDisposable)?.Dispose();
                 EventFlagsEditor = sav is SAV9ZA za
                     ? new ZaEventEditorViewModel(za, _dialogService)
-                    : sav is SAV7 or SAV7b or SAV8BS
+                    : sav is SAV4 or SAV7 or SAV7b or SAV8BS
                         ? new CategorizedEventEditorViewModel(sav, _dialogService)
                         : new EventFlagsEditorViewModel(sav);
                 MysteryGiftEditor = new MysteryGiftEditorViewModel(sav, _dialogService, _giftRecordProvider, _spriteRenderer);

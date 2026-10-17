@@ -25,7 +25,12 @@
             </DockPanel>
             <TabControl>
                 <TabItem Header="{loc:Loc Events_Edit}">
-                    <Grid RowDefinitions="Auto,*,Auto" Margin="0,8,0,0">
+                    <Grid Margin="0,8,0,0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" MaxHeight="120" />
+                        </Grid.RowDefinitions>
                         <StackPanel x:Name="EditorFilters" Grid.Row="0" Spacing="6" Margin="0,0,0,6">
                             <WrapPanel>
                                 <ComboBox ItemsSource="{Binding Banks}" SelectedItem="{Binding SelectedBank}"
@@ -42,7 +47,7 @@
                                 </ComboBox>
                                 <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,0,0,6">
                                     <TextBlock Text="{loc:Loc Events_Index}" VerticalAlignment="Center" />
-                                    <NumericUpDown Value="{Binding SelectedIndex}" Minimum="0" Maximum="{Binding MaxIndex}" Width="100"
+                                    <NumericUpDown Value="{Binding SelectedIndex}" Minimum="0" Maximum="{Binding MaxIndex}" Width="140"
                                                    FormatString="0" AutomationProperties.Name="{loc:Loc Events_Index}" />
                                 </StackPanel>
                             </WrapPanel>
