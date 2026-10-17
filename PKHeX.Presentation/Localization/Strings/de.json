@@ -1218,6 +1218,7 @@
   "MailBoxEditor_Tid": "TID:",
   "MailBoxEditor_Sid": "SID:",
   "MailBoxEditor_Language": "Sprache:",
+  "MailBoxEditor_International": "International",
   "MailBoxEditor_MailDetails": "Postdetails",
   "MailBoxEditor_MailType": "Posttyp:",
   "MailBoxEditor_AppearPkm": "Erscheinendes PKM:",
