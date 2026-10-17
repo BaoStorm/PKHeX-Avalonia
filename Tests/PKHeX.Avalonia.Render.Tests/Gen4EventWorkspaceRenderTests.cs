@@ -2,7 +2,9 @@ using System.Globalization;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Presenters;
+using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
+using Avalonia.Input;
 using Avalonia.Media.Imaging;
 using Avalonia.Styling;
 using Avalonia.VisualTree;
@@ -22,12 +24,13 @@ namespace PKHeX.Avalonia.Render.Tests;
 public sealed class Gen4EventWorkspaceRenderTests
 {
     [AvaloniaTheory]
-    [InlineData("gen4_diamond.sav", "en", false, 600)]
-    [InlineData("gen4_platinum.sav", "de", true, 600)]
-    [InlineData("gen4_heartgold.sav", "ja", false, 600)]
-    [InlineData("gen4_platinum.sav", "pt-BR", true, 600)]
-    [InlineData("gen4_heartgold.sav", "ja", false, 570)]
-    public async Task OriginalDsEventsRenderInTheCompactMainWorkspaceWithReachableLabelsAndApply(string file, string language, bool dark, int height)
+    [InlineData("gen4_diamond.sav", "en", false, 600, 14)]
+    [InlineData("gen4_platinum.sav", "de", true, 600, 14)]
+    [InlineData("gen4_heartgold.sav", "ja", false, 600, 14)]
+    [InlineData("gen4_platinum.sav", "pt-BR", true, 600, 14)]
+    [InlineData("gen4_heartgold.sav", "ja", false, 570, 14)]
+    [InlineData("gen4_heartgold.sav", "ja", false, 570, 18)]
+    public async Task OriginalDsEventsRenderInTheCompactMainWorkspaceWithReachableLabelsAndApply(string file, string language, bool dark, int height, double fontSize)
     {
         var previousLanguage = LocalizedStrings.Instance.CurrentLanguage;
         var previousData = GameInfo.CurrentLanguage;
@@ -72,6 +75,8 @@ public sealed class Gen4EventWorkspaceRenderTests
             window.Show();
             await PKHeX.Testing.HeadlessRenderSettling.Settle(window);
             var view = window.GetVisualDescendants().OfType<CategorizedEventEditor>().Single(control => control.IsEffectivelyVisible);
+            view.FontSize = fontSize;
+            await PKHeX.Testing.HeadlessRenderSettling.Settle(window);
             var grid = view.FindControl<DataGrid>("EventGrid")!;
 
             foreach (var (kind, index) in new[] { (EventDataKind.Flag, 214), (EventDataKind.Flag, 304), (EventDataKind.Work, save is SAV4HGSS ? 304 : 64), (EventDataKind.Flag, save.EventFlagCount - 1) })
@@ -85,11 +90,15 @@ public sealed class Gen4EventWorkspaceRenderTests
                 grid.ScrollIntoView(row, grid.Columns[0]);
                 await PKHeX.Testing.HeadlessRenderSettling.Settle(window);
                 var name = $"events4-{Path.GetFileNameWithoutExtension(file)}-{language}-{(dark ? "dark" : "light")}-{kind}-{index}" + (height == 600 ? string.Empty : $"-height{height}");
+                if (fontSize != 14) name += $"-font{fontSize:0}";
                 WriteLayoutDiagnostics(window, view, grid, name);
                 Capture(window, name);
                 Assert.True(grid.Bounds.Height >= 40, $"Events grid height {grid.Bounds.Height} for {file}/{language}/{kind}/{index} at {window.ClientSize}");
                 var realized = Assert.Single(grid.GetVisualDescendants().OfType<DataGridRow>(), control => ReferenceEquals(control.DataContext, row));
                 AssertVisible(window, realized);
+                var rowTop = realized.TranslatePoint(default, grid)!.Value.Y;
+                Assert.True(rowTop >= 0 && rowTop + realized.Bounds.Height <= grid.Bounds.Height + 1,
+                    $"The selected event row must fit fully inside the table: {rowTop} + {realized.Bounds.Height} in {grid.Bounds.Height}");
                 var indexInput = view.GetVisualDescendants().OfType<NumericUpDown>().Single();
                 var presenter = indexInput.GetVisualDescendants().OfType<TextPresenter>().Single();
                 Assert.Equal(index.ToString(CultureInfo.CurrentCulture), presenter.Text);
@@ -99,7 +108,12 @@ public sealed class Gen4EventWorkspaceRenderTests
                     $"Index {index} text width {line.WidthIncludingTrailingWhitespace} exceeds viewport {viewport.Viewport.Width}");
                 Assert.NotEmpty(row.Name);
                 foreach (var button in view.GetVisualDescendants().OfType<Button>().Where(button => ReferenceEquals(button.Command, vm.ApplyCommand) || ReferenceEquals(button.Command, vm.CancelCommand) || ReferenceEquals(button.Command, vm.ResetCommand)))
+                {
                     AssertVisible(window, button);
+                    var position = button.TranslatePoint(default, view)!.Value;
+                    Assert.True(position.Y >= 0 && position.Y + button.Bounds.Height <= view.Bounds.Height + 1,
+                        $"Footer action must fit inside the Events workspace: {position} + {button.Bounds} in {view.Bounds}");
+                }
                 var details = view.FindControl<ContentControl>("EditorDetails")!;
                 AssertVisible(window, details);
                 if (height < 600)
@@ -116,6 +130,23 @@ public sealed class Gen4EventWorkspaceRenderTests
                     WriteLayoutDiagnostics(window, view, grid, name + "-details-end");
                     Capture(window, name + "-details-end");
                     scroll.ScrollToHome();
+                    await PKHeX.Testing.HeadlessRenderSettling.Settle(window);
+                }
+                if (fontSize > 14)
+                {
+                    var warningScroll = view.FindControl<ScrollViewer>("EventWarningScroll")!;
+                    // Force overflow even when the host's fallback CJK font is narrower
+                    // than macOS's, and exercise the actual keyboard scroll route.
+                    warningScroll.MaxHeight = fontSize;
+                    await PKHeX.Testing.HeadlessRenderSettling.Settle(window);
+                    Assert.True(warningScroll.Extent.Height > warningScroll.Viewport.Height);
+                    Assert.True(warningScroll.Focus());
+                    window.KeyPressQwerty(PhysicalKey.PageDown, RawInputModifiers.None);
+                    window.KeyReleaseQwerty(PhysicalKey.PageDown, RawInputModifiers.None);
+                    await PKHeX.Testing.HeadlessRenderSettling.Settle(window);
+                    Assert.True(warningScroll.Offset.Y > 0, "Focused warning must scroll with PageDown");
+                    warningScroll.ScrollToHome();
+                    warningScroll.MaxHeight = 60;
                     await PKHeX.Testing.HeadlessRenderSettling.Settle(window);
                 }
             }
@@ -153,6 +184,7 @@ public sealed class Gen4EventWorkspaceRenderTests
             $"Filters={view.FindControl<StackPanel>("EditorFilters")!.Bounds}",
             $"Warning={warning.Bounds}; Font={warning.FontFamily}/{warning.FontSize}; Lines={warning.TextLayout.TextLines.Count}",
             $"Rows={grid.GetVisualDescendants().OfType<DataGridRow>().Count()}; Culture={CultureInfo.CurrentCulture.Name}",
+            $"ViewOrigin={view.TranslatePoint(default, window)}; WarningScroll={view.FindControl<ScrollViewer>("EventWarningScroll")!.Bounds}",
         };
         Directory.CreateDirectory(CaptureDirectory);
         File.WriteAllLines(Path.Combine(CaptureDirectory, name + ".txt"), lines);
