@@ -3520,5 +3520,13 @@
   "SlotState_Team": "对战队伍",
   "SlotState_Locked": "已锁定",
   "SlotState_Party": "同行位置 {0}",
-  "SlotState_Starter": "初始宝可梦"
+  "SlotState_Starter": "初始宝可梦",
+  "RsBoxWallpaper_Title": "我的壁纸（RSBOX）",
+  "RsBoxWallpaper_Help": "预览完整的 568 × 216 像素图像。导出 PNG 不会修改存档。",
+  "RsBoxWallpaper_Unavailable": "此存档未保存“我的壁纸”图像。",
+  "RsBoxWallpaper_Disabled": "已保存图像，但此存档中的“我的壁纸”已禁用。",
+  "RsBoxWallpaper_PreviewFailed": "无法创建壁纸预览：{0}",
+  "RsBoxWallpaper_Export": "导出 PNG",
+  "RsBoxWallpaper_Exported": "已将壁纸导出为 PNG。",
+  "RsBoxWallpaper_ExportFailed": "无法导出壁纸"
 }

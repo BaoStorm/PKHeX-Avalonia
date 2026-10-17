@@ -3520,5 +3520,13 @@
   "SlotState_Team": "Battle team",
   "SlotState_Locked": "Locked",
   "SlotState_Party": "Party slot {0}",
-  "SlotState_Starter": "Starter"
+  "SlotState_Starter": "Starter",
+  "RsBoxWallpaper_Title": "My Wallpaper (RSBOX)",
+  "RsBoxWallpaper_Help": "Preview the complete 568 × 216 image. PNG export does not modify the save.",
+  "RsBoxWallpaper_Unavailable": "This save has no stored My Wallpaper image.",
+  "RsBoxWallpaper_Disabled": "A stored image is available, but My Wallpaper is disabled in this save.",
+  "RsBoxWallpaper_PreviewFailed": "The wallpaper preview could not be created: {0}",
+  "RsBoxWallpaper_Export": "Export PNG",
+  "RsBoxWallpaper_Exported": "Wallpaper exported as PNG.",
+  "RsBoxWallpaper_ExportFailed": "Could not export wallpaper"
 }

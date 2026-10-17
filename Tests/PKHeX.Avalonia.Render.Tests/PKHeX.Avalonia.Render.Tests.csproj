@@ -19,6 +19,7 @@
     <ProjectReference Include="../../PKHeX.Core/PKHeX.Core.csproj" />
     <ProjectReference Include="../../PKHeX.Presentation/PKHeX.Presentation.csproj" />
     <Compile Include="../Shared/HeadlessRenderSettling.cs" Link="HeadlessRenderSettling.cs" />
+    <Compile Include="../Shared/RsBoxWallpaperFixture.cs" Link="RsBoxWallpaperFixture.cs" />
     <None Update="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

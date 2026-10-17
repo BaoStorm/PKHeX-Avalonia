@@ -3520,5 +3520,13 @@
   "SlotState_Team": "배틀팀",
   "SlotState_Locked": "잠김",
   "SlotState_Party": "파티 슬롯 {0}",
-  "SlotState_Starter": "스타팅 포켓몬"
+  "SlotState_Starter": "스타팅 포켓몬",
+  "RsBoxWallpaper_Title": "나의 배경화면 (RSBOX)",
+  "RsBoxWallpaper_Help": "568 × 216 픽셀의 전체 이미지를 미리 봅니다. PNG 내보내기는 저장 데이터를 변경하지 않습니다.",
+  "RsBoxWallpaper_Unavailable": "이 저장 데이터에는 나의 배경화면 이미지가 없습니다.",
+  "RsBoxWallpaper_Disabled": "저장된 이미지가 있지만 이 저장 데이터에서는 나의 배경화면이 비활성화되어 있습니다.",
+  "RsBoxWallpaper_PreviewFailed": "배경화면 미리보기를 만들 수 없습니다: {0}",
+  "RsBoxWallpaper_Export": "PNG 내보내기",
+  "RsBoxWallpaper_Exported": "배경화면을 PNG로 내보냈습니다.",
+  "RsBoxWallpaper_ExportFailed": "배경화면을 내보낼 수 없습니다"
 }

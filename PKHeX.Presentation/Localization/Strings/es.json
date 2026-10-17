@@ -3520,5 +3520,13 @@
   "SlotState_Team": "Equipo de combate",
   "SlotState_Locked": "Bloqueado",
   "SlotState_Party": "Puesto del equipo {0}",
-  "SlotState_Starter": "Inicial"
+  "SlotState_Starter": "Inicial",
+  "RsBoxWallpaper_Title": "Mi fondo (RSBOX)",
+  "RsBoxWallpaper_Help": "Vista previa de la imagen completa de 568 × 216 píxeles. La exportación PNG no modifica la partida.",
+  "RsBoxWallpaper_Unavailable": "Esta partida no contiene una imagen de Mi fondo.",
+  "RsBoxWallpaper_Disabled": "Hay una imagen guardada, pero Mi fondo está desactivado en esta partida.",
+  "RsBoxWallpaper_PreviewFailed": "No se pudo crear la vista previa del fondo: {0}",
+  "RsBoxWallpaper_Export": "Exportar PNG",
+  "RsBoxWallpaper_Exported": "Fondo exportado como PNG.",
+  "RsBoxWallpaper_ExportFailed": "No se pudo exportar el fondo"
 }

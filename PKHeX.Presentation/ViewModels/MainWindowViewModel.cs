@@ -58,6 +58,7 @@ public partial class MainWindowViewModel : ViewModelBase
     [NotifyCanExecuteChangedFor(nameof(ExportShowdownCommand))]
     [NotifyCanExecuteChangedFor(nameof(OpenPKMDatabaseCommand))]
     [NotifyCanExecuteChangedFor(nameof(OpenBoxReportCommand))]
+    [NotifyCanExecuteChangedFor(nameof(OpenRsBoxWallpaperCommand))]
     [NotifyCanExecuteChangedFor(nameof(OpenAutoLegalityModCommand))]
     [NotifyCanExecuteChangedFor(nameof(OpenLiveHeXCommand))]
     [NotifyCanExecuteChangedFor(nameof(OpenLivingDexGeneratorCommand))]

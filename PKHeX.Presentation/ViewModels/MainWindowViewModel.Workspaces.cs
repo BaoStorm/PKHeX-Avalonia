@@ -217,6 +217,8 @@ public partial class MainWindowViewModel
         RegisterMenuCapability("Menu_Save_HallOfFame", OpenHallOfFameCommand, "Menu_Tools_SaveEditors");
         RegisterMenuCapability("Menu_Save_MailBox", OpenMailBoxCommand, "Menu_Tools_SaveEditors");
         RegisterMenuCapability("Menu_Save_BoxLayout", OpenBoxLayoutCommand, "Menu_Tools_SaveEditors");
+        RegisterConditionalMenuCapability("RsBoxWallpaper_Title", OpenRsBoxWallpaperCommand,
+            "Menu_Gen3", () => CurrentSave is SAV3RSBox);
         RegisterConditionalMenuCapability("Dialog_GroupViewer", OpenGroupViewerCommand,
             "Menu_Tools_SaveEditors", () => CurrentSave is SAV_STADIUM);
         RegisterConditionalMenuCapability("Dialog_SimpleTrainerEditor", OpenSimpleTrainerCommand,

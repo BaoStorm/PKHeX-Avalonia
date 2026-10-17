@@ -3520,5 +3520,13 @@
   "SlotState_Team": "バトルチーム",
   "SlotState_Locked": "ロック済み",
   "SlotState_Party": "手持ちの位置 {0}",
-  "SlotState_Starter": "最初のポケモン"
+  "SlotState_Starter": "最初のポケモン",
+  "RsBoxWallpaper_Title": "マイ壁紙（RSBOX）",
+  "RsBoxWallpaper_Help": "568 × 216 ピクセルの画像全体を表示します。PNG のエクスポートはセーブデータを変更しません。",
+  "RsBoxWallpaper_Unavailable": "このセーブデータにはマイ壁紙の画像が保存されていません。",
+  "RsBoxWallpaper_Disabled": "画像は保存されていますが、このセーブデータではマイ壁紙が無効になっています。",
+  "RsBoxWallpaper_PreviewFailed": "壁紙のプレビューを作成できませんでした: {0}",
+  "RsBoxWallpaper_Export": "PNG をエクスポート",
+  "RsBoxWallpaper_Exported": "壁紙を PNG としてエクスポートしました。",
+  "RsBoxWallpaper_ExportFailed": "壁紙をエクスポートできませんでした"
 }
