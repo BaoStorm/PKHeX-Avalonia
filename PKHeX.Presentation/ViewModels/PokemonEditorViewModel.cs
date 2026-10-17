@@ -705,8 +705,13 @@ public partial class PokemonEditorViewModel : ViewModelBase
 
     partial void OnSelectedAbilityIndexChanged(int value)
     {
-        if (_isLoading || _synchronizingAbilityChoice || value < 0 || value >= AbilityList.Count)
+        if (_isLoading || _synchronizingAbilityChoice)
             return;
+        if (!CanChooseAbilityIndex(value))
+        {
+            SynchronizeAbilityChoice(useStoredSlot: true);
+            return;
+        }
         _synchronizingAbilityChoice = true;
         try { Ability = AbilityList[value].Value; }
         finally { _synchronizingAbilityChoice = false; }
@@ -730,10 +735,27 @@ public partial class PokemonEditorViewModel : ViewModelBase
 
     private void RebuildAbilityChoices()
     {
-        AbilityChoices = AbilityList.Select((entry, index) => new ComboItem(entry.Text, index)).ToArray();
+        AbilityChoices = AbilityList.Select((entry, index) => new ComboItem(entry.Text, index))
+            .Where(entry => CanChooseAbilityIndex(entry.Value)).ToArray();
         if (!_isLoading)
             SynchronizeAbilityChoice(preserveIndex: true);
     }
+
+    private bool CanChooseAbilityIndex(int index)
+    {
+        if (index < 0 || index >= AbilityList.Count)
+            return false;
+        if (_haXMode || _pk is not G3PKM || index != 1)
+            return true;
+        // Normal Gen 3 single-ability species cannot retain a second selection through
+        // Core's RefreshAbility. Preserve an already stored bit, including the three
+        // species for which Core deliberately permits either identical-ability bit.
+        return AbilityList[0].Value != AbilityList[1].Value || IsGen3AbilityBitException
+            || _pk.AbilityNumber == 2;
+    }
+
+    private bool IsGen3AbilityBitException => _pk is G3PKM
+        && Species is (int)Core.Species.Granbull or (int)Core.Species.Vibrava or (int)Core.Species.Flygon;
 
     private void SynchronizeAbilityChoice(bool useStoredSlot = false, bool preserveIndex = false)
     {
@@ -744,7 +766,7 @@ public partial class PokemonEditorViewModel : ViewModelBase
             4 => 2,
             _ => -1,
         } : preserveIndex ? SelectedAbilityIndex : -1;
-        var index = preferred >= 0 && preferred < AbilityList.Count && AbilityList[preferred].Value == Ability
+        var index = CanChooseAbilityIndex(preferred) && AbilityList[preferred].Value == Ability
             ? preferred : AbilityList.ToList().FindIndex(entry => entry.Value == Ability);
         _synchronizingAbilityChoice = true;
         try { SelectedAbilityIndex = index; }
@@ -814,12 +836,62 @@ public partial class PokemonEditorViewModel : ViewModelBase
         var abilityIndex = !_haXMode && SelectedAbilityIndex >= 0 && SelectedAbilityIndex < _pk.PersonalInfo.AbilityCount
             && _pk.PersonalInfo.GetAbilityAtIndex(SelectedAbilityIndex) == Ability
             ? SelectedAbilityIndex : _pk.PersonalInfo.GetIndexOfAbility(Ability);
+        var previousPid = _pk.PID;
         if (abilityIndex >= 0)
-            _pk.RefreshAbility(abilityIndex);
+        {
+            var changePid = !_haXMode && abilityIndex < 2 && _pk.Format is 3 or 4 or 5
+                && _pk.Version != GameVersion.CXD && _pk.PIDAbility >= 0 && _pk.PIDAbility != abilityIndex;
+            if (changePid)
+            {
+                // Core's generator intentionally searches until all legacy constraints
+                // match. Reject infeasible imported/user-edited values before that search.
+                if (!CanGenerateAbilityPid())
+                {
+                    _synchronizingAbilityChoice = true;
+                    try { Ability = _pk.Ability; }
+                    finally { _synchronizingAbilityChoice = false; }
+                    _abilitySelectionChanged = false;
+                    AbilityNumber = _pk.AbilityNumber;
+                    SynchronizeAbilityChoice(useStoredSlot: true);
+                    return;
+                }
+                _pk.Gender = (byte)Gender;
+                _pk.SetAbilityIndex(abilityIndex);
+            }
+            // Core preserves these species' existing bits in RefreshAbility. Explicit
+            // edits still need the bit itself, after any mainline PID correction above.
+            if (IsGen3AbilityBitException)
+                _pk.AbilityNumber = 1 << abilityIndex;
+            else if (!changePid)
+                _pk.RefreshAbility(abilityIndex);
+        }
         else
             _pk.Ability = Ability;
 
+        if (_pk.PID != previousPid)
+        {
+            // The legacy slot is derived from PID. Preserve the requested shiny state
+            // before syncing the text fields that PreparePKM parses later in this call.
+            if (IsShiny && !_pk.IsShiny) _pk.SetShiny();
+            else if (!IsShiny && _pk.IsShiny) _pk.SetUnshiny();
+            SyncPidFieldsFromEntity();
+        }
         AbilityNumber = _pk.AbilityNumber;
+        if (!_haXMode)
+        {
+            SynchronizeAbilityChoice(useStoredSlot: true);
+            RebuildAbilityChoices();
+        }
+    }
+
+    private bool CanGenerateAbilityPid()
+    {
+        if (_pk.Species == 0 || _pk.Species > _pk.MaxSpeciesID || !(_pk.Gen3 || _pk.Gen4 || _pk.Gen5))
+            return false;
+        if ((_pk.Gen3 || _pk.Gen4) && (uint)_pk.Nature >= 25)
+            return false;
+        var ratio = PersonalTable.B2W2[_pk.Species].Gender;
+        return PersonalInfo.IsSingleGender(ratio) || Gender is 0 or 1;
     }
 
     private void UpdateFormList(bool preserveSelection = true)

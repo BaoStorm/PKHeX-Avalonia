@@ -145,6 +145,9 @@ public class FilterableComboBox : AutoCompleteBox
             _committed = entry;
         }
         finally { _syncing = false; }
+        // A model may normalize an unavailable selection or replace its choices while
+        // accepting it. Render the resulting bound value, not the stale candidate.
+        SynchronizeSelection();
     }
 
     protected override void OnLostFocus(RoutedEventArgs e)
