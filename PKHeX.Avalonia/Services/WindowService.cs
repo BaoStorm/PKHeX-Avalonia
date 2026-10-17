@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Controls.Primitives;
 using PKHeX.Application.Abstractions;
 using PKHeX.Presentation.ViewModels;
 
@@ -14,6 +15,12 @@ namespace PKHeX.Avalonia.Services;
 /// </summary>
 public sealed class WindowService : IWindowService
 {
+    private readonly Func<Window?> _getMainWindow;
+
+    public WindowService() : this(() => MainWindow) { }
+
+    internal WindowService(Func<Window?> getMainWindow) => _getMainWindow = getMainWindow;
+
     // Open modeless tool windows, keyed by their ViewModel instance, so re-invoking focuses
     // the existing window instead of opening a duplicate.
     private readonly Dictionary<object, Window> _tools = new();
@@ -24,7 +31,7 @@ public sealed class WindowService : IWindowService
 
     public async Task ShowDialogAsync(object viewModel, string title)
     {
-        var owner = MainWindow;
+        var owner = _getMainWindow();
         if (owner is null) return;
 
         var isSettings = viewModel is SettingsViewModel;
@@ -162,17 +169,18 @@ public sealed class WindowService : IWindowService
             return;
         }
 
-        var owner = MainWindow;
+        var owner = _getMainWindow();
         if (owner is null) return;
 
         var key = viewModel.GetType().FullName ?? viewModel.GetType().Name;
-        var maxToolHeight = GetToolMaxHeight(owner);
+        var availableSize = GetAvailableToolSize(owner);
+        var maxToolHeight = availableSize.Height;
         var window = new Window
         {
             Title = title,
             Content = ViewLocator.Build(viewModel),
             CanResize = true,
-            MaxWidth = GetMaxWindowWidth(owner),
+            MaxWidth = availableSize.Width,
             MaxHeight = maxToolHeight,
         };
 
@@ -180,7 +188,7 @@ public sealed class WindowService : IWindowService
         {
             window.WindowStartupLocation = WindowStartupLocation.Manual;
             window.Position = bounds.Position;
-            window.Width = bounds.Width;
+            window.Width = Math.Min(bounds.Width, window.MaxWidth);
             window.Height = Math.Min(bounds.Height, maxToolHeight);
         }
         else
@@ -203,6 +211,8 @@ public sealed class WindowService : IWindowService
             window.MinHeight = Math.Min(300, maxToolHeight);
             window.Width = Math.Min(window.Width, window.MaxWidth);
         }
+
+        ConstrainToolBounds(window);
 
         if (viewModel is ICloseableDialog closeable)
             closeable.CloseRequested = window.Close;
@@ -230,29 +240,53 @@ public sealed class WindowService : IWindowService
     private static Window? MainWindow =>
         (global::Avalonia.Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
 
-    private static double GetToolMaxHeight(Window owner)
+    private static double GetToolMaxHeight(Window owner) => Math.Max(420, GetAvailableToolSize(owner).Height);
+
+    private static double GetMaxWindowWidth(Window owner) => Math.Max(620, GetAvailableToolSize(owner).Width);
+
+    private static Size GetAvailableToolSize(Window owner)
     {
         var screen = owner.Screens.ScreenFromWindow(owner) ?? owner.Screens.Primary;
         if (screen is null)
-            return 760;
-
-        var scaling = owner.RenderScaling > 0 ? owner.RenderScaling : 1;
-        var workingHeight = screen.WorkingArea.Height / scaling;
-
-        // Leave room for the native title bar and a small work-area margin. Without this,
-        // SizeToContent tools can consume the full working area and clip their close button.
-        return Math.Max(420, workingHeight - 48);
-    }
-
-    private static double GetMaxWindowWidth(Window owner)
-    {
-        var screen = owner.Screens.ScreenFromWindow(owner) ?? owner.Screens.Primary;
-        if (screen is null)
-            return 1200;
+            return new Size(1200, 760);
 
         var scaling = owner.RenderScaling > 0 ? owner.RenderScaling : 1;
         var workingWidth = screen.WorkingArea.Width / scaling;
-        return Math.Clamp(workingWidth - 48, 620, 1200);
+        var workingHeight = screen.WorkingArea.Height / scaling;
+        // Reserve the native title bar and a small work-area margin outside the client
+        // area. Tool hosts can scroll below their view minima on a small work area;
+        // modal dialogs retain their existing sizing policy through the helpers above.
+        return new Size(Math.Clamp(workingWidth - 48, 1, 1200), Math.Max(1, workingHeight - 48));
+    }
+
+    internal static void ConstrainToolBounds(Window window)
+    {
+        if (window.Content is not Control content) return;
+
+        // Window dimensions constrain the client area; native title bars are outside it.
+        // Copy the view's layout minimum to its host so resizing/restoring cannot arrange
+        // an oversized view outside the visible client rectangle (notably Legality Audit).
+        var minWidth = content.MinWidth + content.Margin.Left + content.Margin.Right + window.Padding.Left + window.Padding.Right;
+        var minHeight = content.MinHeight + content.Margin.Top + content.Margin.Bottom + window.Padding.Top + window.Padding.Bottom;
+        window.MinWidth = Math.Min(Math.Max(window.MinWidth, minWidth), window.MaxWidth);
+        window.MinHeight = Math.Min(Math.Max(window.MinHeight, minHeight), window.MaxHeight);
+
+        // A small work area must remain usable even if the view cannot reflow below its
+        // minimum. Keep that minimum inside a scrollable viewport instead of clipping it
+        // or forcing the native window beyond the screen's available client size.
+        if (minWidth > window.MaxWidth || minHeight > window.MaxHeight)
+        {
+            window.Content = null;
+            window.Content = new ScrollViewer
+            {
+                Content = content,
+                HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
+                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+            };
+        }
+
+        window.Width = Math.Clamp(window.Width, window.MinWidth, window.MaxWidth);
+        window.Height = Math.Clamp(window.Height, window.MinHeight, window.MaxHeight);
     }
 
     internal static void SetMeasuredInitialBounds(Window window)
