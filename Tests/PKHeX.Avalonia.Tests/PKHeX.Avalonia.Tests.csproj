@@ -31,6 +31,7 @@
 
   <ItemGroup>
     <Compile Include="../Shared/HeadlessRenderSettling.cs" Link="Harness/HeadlessRenderSettling.cs" />
+    <Compile Include="../Shared/RsBoxWallpaperFixture.cs" Link="Fixtures/RsBoxWallpaperFixture.cs" />
     <None Update="test_save.sav">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

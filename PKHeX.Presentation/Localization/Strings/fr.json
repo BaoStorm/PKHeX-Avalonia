@@ -3515,5 +3515,13 @@
   "SlotState_Team": "Équipe de combat",
   "SlotState_Locked": "Verrouillé",
   "SlotState_Party": "Place dans l’équipe {0}",
-  "SlotState_Starter": "Pokémon de départ"
+  "SlotState_Starter": "Pokémon de départ",
+  "RsBoxWallpaper_Title": "Mon fond (RSBOX)",
+  "RsBoxWallpaper_Help": "Aperçu de l’image complète de 568 × 216 pixels. L’export PNG ne modifie pas la sauvegarde.",
+  "RsBoxWallpaper_Unavailable": "Cette sauvegarde ne contient aucune image de fond personnalisée.",
+  "RsBoxWallpaper_Disabled": "Une image est enregistrée, mais le fond personnalisé est désactivé dans cette sauvegarde.",
+  "RsBoxWallpaper_PreviewFailed": "Impossible de créer l’aperçu du fond : {0}",
+  "RsBoxWallpaper_Export": "Exporter en PNG",
+  "RsBoxWallpaper_Exported": "Fond exporté au format PNG.",
+  "RsBoxWallpaper_ExportFailed": "Impossible d’exporter le fond"
 }

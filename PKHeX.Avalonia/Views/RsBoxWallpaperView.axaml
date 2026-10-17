@@ -1,0 +1,29 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:PKHeX.Presentation.ViewModels;assembly=PKHeX.Presentation"
+             xmlns:loc="using:PKHeX.Avalonia.Localization"
+             x:Class="PKHeX.Avalonia.Views.RsBoxWallpaperView"
+             x:DataType="vm:RsBoxWallpaperViewModel"
+             MinWidth="420" MinHeight="330">
+    <Border Classes="view-container">
+        <Grid RowDefinitions="Auto,*,Auto,Auto" RowSpacing="12">
+            <StackPanel Spacing="6">
+                <TextBlock Classes="section-title" Text="{loc:Loc RsBoxWallpaper_Title}" FontSize="20" FontWeight="SemiBold" />
+                <TextBlock Text="{loc:Loc RsBoxWallpaper_Help}" MaxWidth="568" HorizontalAlignment="Left" TextWrapping="Wrap" Foreground="{DynamicResource ThemeTextSecondaryBrush}" />
+            </StackPanel>
+            <Border Grid.Row="1" Classes="editor-section-padded" Padding="8" MinHeight="120">
+                <Viewbox Stretch="Uniform" StretchDirection="DownOnly" IsVisible="{Binding HasImage}">
+                    <Image Name="WallpaperPreview" Width="568" Height="216" Stretch="Uniform"
+                           Source="{Binding PreviewPng, Converter={StaticResource PngBytesToBitmap}}"
+                           AutomationProperties.Name="{loc:Loc RsBoxWallpaper_Title}" />
+                </Viewbox>
+            </Border>
+            <TextBlock Grid.Row="2" Text="{Binding Status}" MaxWidth="568" HorizontalAlignment="Left" TextWrapping="Wrap" Foreground="{DynamicResource ThemeTextSecondaryBrush}" />
+            <WrapPanel Grid.Row="3" HorizontalAlignment="Right">
+                <Button Content="{loc:Loc Common_Cancel}" Command="{Binding ExportCancelCommand}" IsVisible="{Binding ExportCommand.IsRunning}" Margin="0,0,8,0" />
+                <Button Name="ExportWallpaper" Content="{loc:Loc RsBoxWallpaper_Export}" Command="{Binding ExportCommand}" Classes="accent" Margin="0,0,8,0" />
+                <Button Content="{loc:Loc Common_Close}" Command="{Binding CloseCommand}" />
+            </WrapPanel>
+        </Grid>
+    </Border>
+</UserControl>

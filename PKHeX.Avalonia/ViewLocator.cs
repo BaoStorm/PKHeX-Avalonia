@@ -26,6 +26,7 @@ public static class ViewLocator
         [typeof(BoxLayoutEditorViewModel)] = () => new BoxLayoutEditor(),
         [typeof(BoxManipViewModel)] = () => new BoxManipView(),
         [typeof(BoxReportViewModel)] = () => new BoxReportView(),
+        [typeof(RsBoxWallpaperViewModel)] = () => new RsBoxWallpaperView(),
         [typeof(BoxViewerViewModel)] = () => new BoxViewer(),
         [typeof(Capture7GGEditorViewModel)] = () => new Capture7GGEditor(),
         [typeof(CategorizedEventEditorViewModel)] = () => new CategorizedEventEditor(),

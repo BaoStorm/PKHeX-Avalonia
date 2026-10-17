@@ -3515,5 +3515,13 @@
   "SlotState_Team": "對戰隊伍",
   "SlotState_Locked": "已鎖定",
   "SlotState_Party": "同行位置 {0}",
-  "SlotState_Starter": "初始寶可夢"
+  "SlotState_Starter": "初始寶可夢",
+  "RsBoxWallpaper_Title": "我的桌布（RSBOX）",
+  "RsBoxWallpaper_Help": "預覽完整的 568 × 216 像素圖像。匯出 PNG 不會修改存檔。",
+  "RsBoxWallpaper_Unavailable": "此存檔未儲存「我的桌布」圖像。",
+  "RsBoxWallpaper_Disabled": "已儲存圖像，但此存檔中的「我的桌布」已停用。",
+  "RsBoxWallpaper_PreviewFailed": "無法建立桌布預覽：{0}",
+  "RsBoxWallpaper_Export": "匯出 PNG",
+  "RsBoxWallpaper_Exported": "已將桌布匯出為 PNG。",
+  "RsBoxWallpaper_ExportFailed": "無法匯出桌布"
 }

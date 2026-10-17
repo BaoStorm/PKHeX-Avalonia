@@ -3515,5 +3515,13 @@
   "SlotState_Team": "Equipe de batalha",
   "SlotState_Locked": "Bloqueado",
   "SlotState_Party": "Posição na equipe {0}",
-  "SlotState_Starter": "Inicial"
+  "SlotState_Starter": "Inicial",
+  "RsBoxWallpaper_Title": "Meu papel de parede (RSBOX)",
+  "RsBoxWallpaper_Help": "Visualize a imagem completa de 568 × 216 pixels. A exportação PNG não modifica o save.",
+  "RsBoxWallpaper_Unavailable": "Este save não contém uma imagem de papel de parede personalizado.",
+  "RsBoxWallpaper_Disabled": "Há uma imagem armazenada, mas o papel de parede personalizado está desativado neste save.",
+  "RsBoxWallpaper_PreviewFailed": "Não foi possível criar a prévia do papel de parede: {0}",
+  "RsBoxWallpaper_Export": "Exportar PNG",
+  "RsBoxWallpaper_Exported": "Papel de parede exportado como PNG.",
+  "RsBoxWallpaper_ExportFailed": "Não foi possível exportar o papel de parede"
 }

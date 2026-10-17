@@ -3515,5 +3515,13 @@
   "SlotState_Team": "Kampfteam",
   "SlotState_Locked": "Gesperrt",
   "SlotState_Party": "Teamplatz {0}",
-  "SlotState_Starter": "Starter"
+  "SlotState_Starter": "Starter",
+  "RsBoxWallpaper_Title": "Mein Hintergrund (RSBOX)",
+  "RsBoxWallpaper_Help": "Vorschau des vollständigen Bildes mit 568 × 216 Pixeln. Der PNG-Export verändert den Spielstand nicht.",
+  "RsBoxWallpaper_Unavailable": "Dieser Spielstand enthält kein eigenes Hintergrundbild.",
+  "RsBoxWallpaper_Disabled": "Ein Bild ist gespeichert, aber der eigene Hintergrund ist in diesem Spielstand deaktiviert.",
+  "RsBoxWallpaper_PreviewFailed": "Die Hintergrundvorschau konnte nicht erstellt werden: {0}",
+  "RsBoxWallpaper_Export": "PNG exportieren",
+  "RsBoxWallpaper_Exported": "Hintergrund als PNG exportiert.",
+  "RsBoxWallpaper_ExportFailed": "Hintergrund konnte nicht exportiert werden"
 }

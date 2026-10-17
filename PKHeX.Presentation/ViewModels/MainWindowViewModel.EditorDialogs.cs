@@ -6,6 +6,18 @@ namespace PKHeX.Presentation.ViewModels;
 
 public partial class MainWindowViewModel
 {
+    private bool CanOpenRsBoxWallpaper => _imageCodec is not null &&
+        PKHeX.Application.UseCases.ReadRsBoxWallpaperUseCase.IsAvailable(CurrentSave);
+
+    [RelayCommand(CanExecute = nameof(CanOpenRsBoxWallpaper))]
+    private async Task OpenRsBoxWallpaperAsync()
+    {
+        if (!CanOpenRsBoxWallpaper || CurrentSave is not SAV3RSBox save || _imageCodec is null)
+            return;
+        await _windowService.ShowDialogAsync(
+            new RsBoxWallpaperViewModel(save, _imageCodec, _dialogService), T("RsBoxWallpaper_Title"));
+    }
+
     /// <summary>Short alias for localized dialog-title lookup (issue #132 UI localization).</summary>
     private static string T(string key) => LocalizedStrings.Instance[key];
 
