@@ -121,6 +121,15 @@ public sealed class Gen4EventWorkspaceRenderTests
                 if (height < 600 && kind == EventDataKind.Work)
                 {
                     var scroll = details.GetVisualDescendants().OfType<ScrollViewer>().Single(control => control.Content is StackPanel);
+                    var input = details.GetVisualDescendants().OfType<TextBox>().Single(control => control.IsEffectivelyVisible);
+                    Assert.True(input.Focus(NavigationMethod.Tab));
+                    await PKHeX.Testing.HeadlessRenderSettling.Settle(window);
+                    var inputClip = input.GetVisualAncestors().OfType<ScrollContentPresenter>().First();
+                    var inputPoint = input.TranslatePoint(default, inputClip)!.Value;
+                    Assert.True(inputPoint.Y >= 0 && inputPoint.Y + input.Bounds.Height <= inputClip.Viewport.Height + 1,
+                        $"Keyboard-focused work input must fit completely: {inputPoint} + {input.Bounds} in {inputClip.Viewport}");
+                    WriteLayoutDiagnostics(window, view, grid, name + "-input-focused");
+                    Capture(window, name + "-input-focused");
                     scroll.ScrollToEnd();
                     await PKHeX.Testing.HeadlessRenderSettling.Settle(window);
                     var bounds = details.GetVisualDescendants().OfType<TextBlock>().Single(control => control.Text == row.BoundsText);
