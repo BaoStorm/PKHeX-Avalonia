@@ -7,6 +7,7 @@ using Avalonia.Headless.XUnit;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using PKHeX.Application.Shortcuts;
+using PKHeX.Avalonia.Input;
 using PKHeX.Avalonia.Tests.Harness;
 using PKHeX.Core;
 using PKHeX.Presentation.Localization;
@@ -224,17 +225,21 @@ public sealed class ShortcutCatalogTests
     // Defaults
     // ---------------------------------------------------------------------
 
-    public static TheoryData<string> Platforms => new() { "fallback", "standard-desktop", "apple" };
+    public static TheoryData<string> Platforms => new() { "fallback", "standard-desktop", "apple", "host", "host-apple" };
 
     private static IShortcutPlatform CreatePlatform(string name) => name switch
     {
         "fallback" => StandardShortcutPlatform.Instance,
         "standard-desktop" => FakeShortcutPlatform.StandardDesktop(),
         "apple" => FakeShortcutPlatform.Apple(),
+        // The real host platform (headless reports the Control command modifier) and the host with
+        // the macOS command modifier injected.
+        "host" => new AvaloniaShortcutPlatform(),
+        "host-apple" => AvaloniaShortcutPlatformTests.AppleHost(),
         _ => throw new ArgumentOutOfRangeException(nameof(name)),
     };
 
-    [Theory]
+    [AvaloniaTheory]
     [MemberData(nameof(Platforms))]
     public void Defaults_AreUsableAndConflictFree(string platformName)
     {

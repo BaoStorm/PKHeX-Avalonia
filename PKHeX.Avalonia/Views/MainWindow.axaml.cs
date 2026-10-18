@@ -5,6 +5,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.LogicalTree;
 using Avalonia.Platform.Storage;
+using PKHeX.Avalonia.Input;
 using PKHeX.Presentation.ViewModels;
 
 namespace PKHeX.Avalonia.Views;
@@ -13,6 +14,7 @@ public partial class MainWindow : Window
 {
     private bool _closeApproved;
     private bool _closePending;
+    private KeyboardShortcutBinder? _shortcutBinder;
     private static readonly IDisposable MenuSubmenuHandlerRegistration =
         MenuItem.IsSubMenuOpenProperty.Changed.AddClassHandler<MenuItem>(OnSubmenuOpenChanged);
 
@@ -20,6 +22,26 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         GC.KeepAlive(MenuSubmenuHandlerRegistration);
+    }
+
+    /// <summary>The configurable shortcut bindings of the current view model, if one is attached.</summary>
+    internal KeyboardShortcutBinder? ShortcutBinder => _shortcutBinder;
+
+    protected override void OnDataContextChanged(EventArgs e)
+    {
+        base.OnDataContextChanged(e);
+
+        // The configurable shortcuts follow the main view model; App and the test harness both set
+        // DataContext after InitializeComponent, and teardown clears it.
+        _shortcutBinder?.Dispose();
+        _shortcutBinder = DataContext is MainWindowViewModel vm ? new KeyboardShortcutBinder(this, vm) : null;
+    }
+
+    protected override void OnClosed(EventArgs e)
+    {
+        _shortcutBinder?.Dispose();
+        _shortcutBinder = null;
+        base.OnClosed(e);
     }
 
     protected override async void OnClosing(WindowClosingEventArgs e)
