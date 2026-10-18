@@ -293,6 +293,22 @@ data live under `~/.var/app/io.github.realgarit.PKHeX-Avalonia/`. The current Av
 11 backend uses X11, including XWayland on Wayland desktops. Network access supports
 legality resources, mystery gifts, and release notes; DRI access supports rendering.
 
+### Community FlatPark repository
+
+[FlatPark](https://flatpark.org/apps/io.github.realgarit.PKHeX-Avalonia) is a
+community Flatpak repository for apps that are not on Flathub. Its PKHeX-Avalonia
+package downloads the unchanged `PKHeX-Avalonia-linux-x64.zip` from each GitHub
+release and grants the same four permissions as this repository's manifest
+(X11, network, IPC and DRI). Because `FLATPAK_ID` is set, the app hands updates to
+`flatpak update` exactly as it does for the release bundle.
+
+FlatPark is maintained independently. It signs with its own key, builds on the
+Freedesktop 26.08 runtime rather than the 25.08 runtime used and tested here, and
+picks up new releases by its own schedule. It uses the same app ID as the release
+bundle, so a system should have only one of the two installed. This project accepts
+the listing as a community install option; it is not part of the release pipeline,
+and a self-hosted repository signed by this project is still tracked separately.
+
 ### Rebuild and maintain
 
 The [Flatpak workflow](../.github/workflows/flatpak.yml) compiles the committed
