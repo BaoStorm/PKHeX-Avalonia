@@ -6,68 +6,129 @@
              x:Class="PKHeX.Avalonia.Views.EncounterDatabaseView"
              x:DataType="vm:EncounterDatabaseViewModel"
              x:Name="Root"
-             MinWidth="650" MinHeight="500" MaxHeight="700">
+             MinWidth="650" MinHeight="500" MaxHeight="760">
     <DockPanel Classes="tool-surface">
         <Border DockPanel.Dock="Top" Classes="tool-header">
             <TextBlock Text="{loc:Loc EncounterDatabaseView_Title}" Classes="tool-header-title" />
         </Border>
 
-        <!-- Search Controls -->
-        <Border DockPanel.Dock="Top" Classes="tool-search-surface" Margin="12,8,12,8">
-            <Grid ColumnDefinitions="*,Auto">
-                <StackPanel Grid.Column="0" Spacing="3">
+        <!-- Filters -->
+        <Border DockPanel.Dock="Top" Classes="tool-search-surface" Margin="12,8,12,4">
+            <StackPanel Spacing="6">
+                <Grid ColumnDefinitions="*,8,*" RowDefinitions="Auto,Auto">
                     <TextBlock Text="{loc:Loc EncounterDatabaseView_Species}" Classes="tool-field-label" />
-                    <controls:FilterableComboBox ItemsSource="{Binding SpeciesList}"
-                              SelectedValue="{Binding SelectedSpecies}"
-                              AutomationProperties.Name="Species" />
+                    <controls:FilterableComboBox Grid.Row="1" ItemsSource="{Binding SpeciesList}" SelectedValue="{Binding SelectedSpecies}"
+                                                 AutomationProperties.Name="{loc:Loc EncounterDatabaseView_Species}" />
+                    <TextBlock Grid.Column="2" Text="{loc:Loc EncounterDatabase_Game}" Classes="tool-field-label" />
+                    <ComboBox Grid.Column="2" Grid.Row="1" ItemsSource="{Binding VersionList}" SelectedValue="{Binding SelectedVersion}"
+                              SelectedValueBinding="{Binding Value}" DisplayMemberBinding="{Binding Text}" HorizontalAlignment="Stretch"
+                              AutomationProperties.Name="{loc:Loc EncounterDatabase_Game}" />
+                </Grid>
+                <TextBlock Text="{loc:Loc EncounterDatabase_Moves}" Classes="tool-field-label" />
+                <Grid ColumnDefinitions="*,8,*,8,*,8,*">
+                    <controls:FilterableComboBox ItemsSource="{Binding MoveList}" SelectedValue="{Binding Move1}" AutomationProperties.Name="{loc:Loc EncounterDatabase_Move1}" />
+                    <controls:FilterableComboBox Grid.Column="2" ItemsSource="{Binding MoveList}" SelectedValue="{Binding Move2}" AutomationProperties.Name="{loc:Loc EncounterDatabase_Move2}" />
+                    <controls:FilterableComboBox Grid.Column="4" ItemsSource="{Binding MoveList}" SelectedValue="{Binding Move3}" AutomationProperties.Name="{loc:Loc EncounterDatabase_Move3}" />
+                    <controls:FilterableComboBox Grid.Column="6" ItemsSource="{Binding MoveList}" SelectedValue="{Binding Move4}" AutomationProperties.Name="{loc:Loc EncounterDatabase_Move4}" />
+                </Grid>
+                <WrapPanel Orientation="Horizontal">
+                    <TextBlock Text="{loc:Loc EncounterDatabase_Levels}" VerticalAlignment="Center" Margin="0,0,6,0" />
+                    <NumericUpDown Value="{Binding LevelMin}" Minimum="1" Maximum="100" FormatString="0" Width="100"
+                                   AutomationProperties.Name="{loc:Loc EncounterDatabase_LevelMin}" Margin="0,0,4,4" />
+                    <NumericUpDown Value="{Binding LevelMax}" Minimum="1" Maximum="100" FormatString="0" Width="100"
+                                   AutomationProperties.Name="{loc:Loc EncounterDatabase_LevelMax}" Margin="0,0,12,4" />
+                    <TextBox Text="{Binding LocationText}" Watermark="{loc:Loc EncounterDatabase_LocationWatermark}" Width="180"
+                             AutomationProperties.Name="{loc:Loc EncounterDatabase_Location}" Margin="0,0,12,4" />
+                    <CheckBox Content="{loc:Loc EncounterDatabase_FlagShiny}" IsThreeState="True" IsChecked="{Binding ShinyFilter}"
+                              ToolTip.Tip="{loc:Loc EncounterDatabase_TriStateHint}" Margin="0,0,12,4" />
+                    <CheckBox Content="{loc:Loc EncounterDatabase_FlagEgg}" IsThreeState="True" IsChecked="{Binding EggFilter}"
+                              ToolTip.Tip="{loc:Loc EncounterDatabase_TriStateHint}" Margin="0,0,0,4" />
+                </WrapPanel>
+                <WrapPanel Orientation="Horizontal">
+                    <TextBlock Text="{loc:Loc EncounterDatabase_Types}" VerticalAlignment="Center" Margin="0,0,6,0" />
+                    <ItemsControl ItemsSource="{Binding TypeFilters}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate><WrapPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:EncounterTypeFilterViewModel">
+                                <CheckBox Content="{Binding Name}" IsChecked="{Binding IsChecked}" Margin="0,0,10,0" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </WrapPanel>
+                <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+                    <Button Content="{loc:Loc EncounterDatabase_ResetFilters}" Command="{Binding ResetFiltersCommand}" />
+                    <Button Content="{loc:Loc Common_Cancel}" Command="{Binding CancelSearchCommand}" IsVisible="{Binding IsSearching}" />
+                    <Button Content="{loc:Loc EncounterDatabaseView_Search}" Command="{Binding SearchCommand}" Classes="accent" IsDefault="True" />
                 </StackPanel>
-                <Button Grid.Column="1" Content="{loc:Loc EncounterDatabaseView_Search}" Command="{Binding SearchCommand}" Margin="8,0,0,0" VerticalAlignment="Bottom" Classes="accent" />
-            </Grid>
+            </StackPanel>
         </Border>
 
-        <!-- Loading Indicator -->
-        <ProgressBar DockPanel.Dock="Top" IsIndeterminate="True" IsVisible="{Binding IsSearching}" Height="4" Margin="0,0,0,8" />
+        <ProgressBar DockPanel.Dock="Top" IsIndeterminate="True" IsVisible="{Binding IsSearching}" Height="4" Margin="12,0,12,4" />
+        <TextBlock DockPanel.Dock="Top" Text="{Binding StatusText}" IsVisible="{Binding HasStatus}" TextWrapping="Wrap"
+                   Margin="12,0,12,4" AutomationProperties.LiveSetting="Polite" />
 
-        <!-- Results Grid — min height so the scroll area is always visible;
-             the view's MaxHeight ensures this never grows beyond the screen -->
-        <Border Classes="database-results-surface" MinHeight="200" Margin="12,0,12,12">
-            <ScrollViewer VerticalScrollBarVisibility="Auto">
-                <ItemsControl ItemsSource="{Binding Results}">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <WrapPanel Orientation="Horizontal" />
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                    <ItemsControl.ItemTemplate>
+        <Grid ColumnDefinitions="*,8,230" Margin="12,0,12,12">
+            <Border Classes="database-results-surface" MinHeight="160">
+                <ListBox ItemsSource="{Binding Results}" SelectedItem="{Binding SelectedResult}" Background="Transparent"
+                         AutomationProperties.Name="{loc:Loc EncounterDatabase_Results}">
+                    <ListBox.KeyBindings>
+                        <KeyBinding Gesture="Enter" Command="{Binding LoadSelectedCommand}" />
+                    </ListBox.KeyBindings>
+                    <ListBox.ItemsPanel>
+                        <ItemsPanelTemplate><WrapPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+                    </ListBox.ItemsPanel>
+                    <ListBox.ItemTemplate>
                         <DataTemplate x:DataType="vm:EncounterResultViewModel">
-                            <Button Margin="4" Padding="4"
-                                    x:CompileBindings="False"
-                                    Command="{Binding #Root.DataContext.SelectEncounterCommand}"
-                                    CommandParameter="{Binding}"
+                            <Border Classes="tool-result-card" Padding="8" Width="230" Height="70"
                                     AutomationProperties.Name="{Binding AccessibleName}"
-                                    Background="Transparent" BorderThickness="0">
-                                <Border Classes="tool-result-card"
-                                        Padding="8" Width="240" Height="70">
-                                    <Grid ColumnDefinitions="50,*">
-                                        <Image Grid.Column="0" Source="{Binding Sprite, Converter={StaticResource PngBytesToBitmap}}" Width="40" Height="40" VerticalAlignment="Center"/>
-                                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
-                                            <DockPanel LastChildFill="False">
-                                                <TextBlock DockPanel.Dock="Left" Text="{Binding Species}" FontWeight="SemiBold"/>
-                                                <TextBlock DockPanel.Dock="Right" Text="{Binding Level}" FontSize="12" Opacity="0.8"/>
-                                            </DockPanel>
-                                            <TextBlock Text="{Binding Location}" FontSize="11" Opacity="0.7" TextTrimming="CharacterEllipsis"/>
-                                            <DockPanel LastChildFill="False">
-                                                 <TextBlock DockPanel.Dock="Left" Text="{Binding Version}" FontSize="10" Opacity="0.5"/>
-                                                 <TextBlock DockPanel.Dock="Right" Text="{Binding Type}" FontSize="10" Opacity="0.5"/>
-                                            </DockPanel>
-                                        </StackPanel>
-                                    </Grid>
-                                </Border>
-                            </Button>
+                                    ToolTip.Tip="{loc:Loc EncounterDatabase_SelectHint}">
+                                <Grid ColumnDefinitions="46,*">
+                                    <Image Source="{Binding Sprite, Converter={StaticResource PngBytesToBitmap}}" Width="40" Height="40" VerticalAlignment="Center" />
+                                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                                        <DockPanel LastChildFill="False">
+                                            <TextBlock DockPanel.Dock="Left" Text="{Binding Species}" FontWeight="SemiBold" />
+                                            <TextBlock DockPanel.Dock="Right" Text="{Binding Level}" FontSize="12" Opacity="0.8" />
+                                        </DockPanel>
+                                        <TextBlock Text="{Binding Location}" FontSize="11" Opacity="0.7" TextTrimming="CharacterEllipsis" />
+                                        <DockPanel LastChildFill="False">
+                                            <TextBlock DockPanel.Dock="Left" Text="{Binding Version}" FontSize="10" Opacity="0.6" />
+                                            <TextBlock DockPanel.Dock="Right" Text="{Binding Type}" FontSize="10" Opacity="0.6" />
+                                        </DockPanel>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
                         </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </ScrollViewer>
-        </Border>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </Border>
+
+            <Border Grid.Column="2" Classes="editor-section-padded">
+                <DockPanel>
+                    <Button DockPanel.Dock="Bottom" Content="{loc:Loc EncounterDatabase_LoadIntoEditor}" Command="{Binding LoadSelectedCommand}"
+                            HorizontalAlignment="Stretch" Classes="accent" Margin="0,8,0,0"
+                            ToolTip.Tip="{loc:Loc EncounterDatabase_LoadHint}" />
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="{loc:Loc EncounterDatabase_Details}" FontWeight="SemiBold" />
+                            <TextBlock Text="{loc:Loc EncounterDatabase_SelectHint}" TextWrapping="Wrap" Classes="form-hint"
+                                       IsVisible="{Binding !HasSelectedResult}" />
+                            <StackPanel Spacing="4" IsVisible="{Binding HasSelectedResult}">
+                                <TextBlock Text="{Binding SelectedResult.Species}" FontSize="16" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                <TextBlock Text="{Binding SelectedResult.Level}" />
+                                <TextBlock Text="{Binding SelectedResult.Location}" TextWrapping="Wrap" />
+                                <TextBlock Text="{Binding SelectedResult.Version}" />
+                                <TextBlock Text="{Binding SelectedResult.Type}" />
+                                <TextBlock Text="{Binding SelectedResult.Flags}" />
+                                <TextBlock Text="{Binding SelectedResult.Moves}" TextWrapping="Wrap" IsVisible="{Binding SelectedResult.HasMoves}" />
+                                <TextBlock Text="{Binding SelectedResult.LongName}" TextWrapping="Wrap" Classes="form-hint" />
+                                <TextBlock Text="{loc:Loc EncounterDatabase_LoadHint}" TextWrapping="Wrap" Classes="form-hint" />
+                            </StackPanel>
+                        </StackPanel>
+                    </ScrollViewer>
+                </DockPanel>
+            </Border>
+        </Grid>
     </DockPanel>
 </UserControl>
