@@ -344,6 +344,17 @@ public partial class MainWindowViewModel
             T("Dialog_TeraRaidEditor"));
     }
 
+    private bool CanOpenRaidEventImport() => CurrentSave is SAV8SWSH or SAV9SV;
+
+    [RelayCommand(CanExecute = nameof(CanOpenRaidEventImport))]
+    private async Task OpenRaidEventImportAsync()
+    {
+        if (CurrentSave is not (SAV8SWSH or SAV9SV)) return;
+        await _windowService.ShowDialogAsync(
+            new RaidEventImportViewModel(CurrentSave, _dialogService),
+            T("Dialog_RaidEventImport"));
+    }
+
     [RelayCommand(CanExecute = nameof(HasSave))]
     private async Task OpenRaidSevenStar9Async()
     {

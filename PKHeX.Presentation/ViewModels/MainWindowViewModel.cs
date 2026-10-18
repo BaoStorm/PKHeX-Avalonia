@@ -69,6 +69,7 @@ public partial class MainWindowViewModel : ViewModelBase
     [NotifyCanExecuteChangedFor(nameof(OpenEncounterDatabaseCommand))]
     [NotifyCanExecuteChangedFor(nameof(OpenPssExportCommand))]
     [NotifyCanExecuteChangedFor(nameof(OpenBattleVideo4Command))]
+    [NotifyCanExecuteChangedFor(nameof(OpenRaidEventImportCommand))]
     [NotifyCanExecuteChangedFor(nameof(UnlockFriendSafariCommand))]
     [NotifyCanExecuteChangedFor(nameof(DumpBoxesCommand))]
     [NotifyCanExecuteChangedFor(nameof(LoadBoxesCommand))]
