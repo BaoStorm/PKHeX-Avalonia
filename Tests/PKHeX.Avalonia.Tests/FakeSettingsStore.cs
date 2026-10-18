@@ -7,5 +7,13 @@ internal sealed class FakeSettingsStore : ISettingsStore
     public AppSettings ToLoad { get; set; } = new();
 
     public AppSettings Load() => ToLoad;
-    public void Save(AppSettings settings) => Saved = settings;
+
+    /// <summary>Number of <see cref="Save"/> calls, for tests that assert a single persist.</summary>
+    public int SaveCount { get; private set; }
+
+    public void Save(AppSettings settings)
+    {
+        Saved = settings;
+        SaveCount++;
+    }
 }
