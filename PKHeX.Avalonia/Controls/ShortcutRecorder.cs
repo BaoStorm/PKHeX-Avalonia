@@ -40,6 +40,10 @@ public sealed class ShortcutRecorder : Button
     public static readonly StyledProperty<string?> RecordingTextProperty =
         AvaloniaProperty.Register<ShortcutRecorder, string?>(nameof(RecordingText));
 
+    // Modifier keys pressed during this recording and not released since. Both keys of one modifier
+    // (the left and right Ctrl keys) can be held, and releasing one leaves the modifier held.
+    private readonly HashSet<Key> _modifierKeysDown = [];
+
     protected override Type StyleKeyOverride => typeof(Button);
 
     /// <summary>True while the control waits for a key combination.</summary>
@@ -91,6 +95,7 @@ public sealed class ShortcutRecorder : Button
         if (change.Property == IsRecordingProperty)
         {
             PseudoClasses.Set(":recording", IsRecording);
+            _modifierKeysDown.Clear();
             if (!IsRecording)
                 PartialText = null;
             UpdateContent();
@@ -133,7 +138,10 @@ public sealed class ShortcutRecorder : Button
         if (ShortcutGestureMapper.IsNonShortcutKey(key))
         {
             var held = modifiers | ModifierOf(key);
-            PartialText = held == KeyModifiers.None ? null : FormatPartial(held);
+            ForgetModifierKeysNotHeld(held);
+            if (ModifierOf(key) != KeyModifiers.None)
+                _modifierKeysDown.Add(key);
+            ShowHeld(held);
             return;
         }
 
@@ -162,9 +170,14 @@ public sealed class ShortcutRecorder : Button
             e.Handled = true;
 
             // Show only the modifiers that are still held. Platforms differ on whether the released
-            // modifier is still in KeyModifiers, so remove it explicitly.
+            // modifier is still in KeyModifiers, so remove it explicitly. It stays only while its other
+            // key (for example the right Ctrl key after the left one is released) is still down.
+            _modifierKeysDown.Remove(e.Key);
+            ForgetModifierKeysNotHeld(e.KeyModifiers);
             var held = e.KeyModifiers & ~ModifierOf(e.Key);
-            PartialText = held == KeyModifiers.None ? null : FormatPartial(held);
+            foreach (var down in _modifierKeysDown)
+                held |= ModifierOf(down);
+            ShowHeld(held);
             return;
         }
 
@@ -176,6 +189,14 @@ public sealed class ShortcutRecorder : Button
         base.OnLostFocus(e);
         IsRecording = false;
     }
+
+    // A key event reports every modifier that is held. A modifier key whose modifier is not reported
+    // was released while this control did not get the key (for example in another window).
+    private void ForgetModifierKeysNotHeld(KeyModifiers reported) =>
+        _modifierKeysDown.RemoveWhere(down => (reported & ModifierOf(down)) == KeyModifiers.None);
+
+    private void ShowHeld(KeyModifiers held) =>
+        PartialText = held == KeyModifiers.None ? null : FormatPartial(held);
 
     private void UpdateContent() =>
         Content = IsRecording ? PartialText ?? RecordingText : ShortcutText;

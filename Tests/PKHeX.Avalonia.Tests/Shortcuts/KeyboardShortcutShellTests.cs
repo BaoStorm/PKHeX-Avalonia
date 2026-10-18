@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using Avalonia.Automation;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
@@ -287,6 +288,97 @@ public sealed class KeyboardShortcutShellTests
     }
 
     [AvaloniaFact]
+    public void AltChord_ReleasedInAnotherWindow_DoesNotSwallowTheNextAltTap()
+    {
+        using var app = CreateWithAltWorkspaceShortcuts();
+        var menu = app.Find<Menu>()!;
+        SwitchToSaveWithAltF5(app, menu);
+
+        // Alt+F6 runs with no focused element. Alt then comes up in another window, as when the
+        // shortcut opens a dialog that takes focus before the key is released.
+        AltDown(app);
+        PressWithAltHeld(app, PhysicalKey.F6);
+        Assert.Equal(MainWorkspace.Pokemon, app.ViewModel.ActiveWorkspace);
+        var dialogButton = new Button { Content = "OK" };
+        var dialog = new Window { Content = dialogButton };
+        var mainReleases = 0;
+        void CountRelease(object? sender, KeyEventArgs e) => mainReleases++;
+        app.Window.AddHandler(InputElement.KeyUpEvent, CountRelease, RoutingStrategies.Tunnel, handledEventsToo: true);
+        try
+        {
+            dialog.Show();
+            app.Pump();
+            dialogButton.Focus();
+            Assert.True(dialogButton.IsFocused);
+            dialog.KeyReleaseQwerty(PhysicalKey.AltLeft, RawInputModifiers.None);
+        }
+        finally
+        {
+            app.Window.RemoveHandler(InputElement.KeyUpEvent, CountRelease);
+            dialog.Close();
+        }
+        app.Pump();
+        Assert.Equal(0, mainReleases);
+        Assert.False(menu.IsOpen);
+
+        // Back in the main window, a bare Alt tap opens the menu bar as usual.
+        AssertAltTapOpensTheMenuBar(app, menu, app.Find<BoxViewer>()!);
+    }
+
+    [AvaloniaFact]
+    public void TwoAltChordsInOnePress_LeaveTheNextAltTapWorking()
+    {
+        using var app = CreateWithAltWorkspaceShortcuts();
+        var menu = app.Find<Menu>()!;
+        app.Focus(app.Find<BoxViewer>()!);
+
+        // Alt+F5 runs with focus inside the window; the switch removes the focused control, so Alt+F6
+        // then runs from the window itself during the same Alt press.
+        AltDown(app);
+        PressWithAltHeld(app, PhysicalKey.F5);
+        Assert.Equal(MainWorkspace.Save, app.ViewModel.ActiveWorkspace);
+        Assert.Null(app.Window.FocusManager!.GetFocusedElement());
+        PressWithAltHeld(app, PhysicalKey.F6);
+        AltUp(app);
+
+        Assert.Equal(MainWorkspace.Pokemon, app.ViewModel.ActiveWorkspace);
+        Assert.False(menu.IsOpen);
+        // The access-key handler saw that release, so its state is reset for the next press.
+        AssertAltTapOpensTheMenuBar(app, menu, app.Find<BoxViewer>()!);
+    }
+
+    [AvaloniaFact]
+    public void AltChord_FromAFocusedElementOutsideTheContent_LeavesTheNextAltTapWorking()
+    {
+        using var app = CreateWithAltWorkspaceShortcuts();
+        var menu = app.Find<Menu>()!;
+        // An overlay popup puts its focused element in the window's overlay layer, outside the content,
+        // so the shortcut runs from the window's handler while focus is inside the window.
+        var overlay = OverlayLayer.GetOverlayLayer(app.Window);
+        Assert.NotNull(overlay);
+        var outside = new Button { Content = "Overlay" };
+        overlay!.Children.Add(outside);
+        try
+        {
+            app.Pump();
+            app.Focus(outside);
+            Assert.True(outside.IsFocused);
+
+            AltDown(app);
+            PressWithAltHeld(app, PhysicalKey.F5);
+            AltUp(app);
+
+            Assert.Equal(MainWorkspace.Save, app.ViewModel.ActiveWorkspace);
+            Assert.False(menu.IsOpen);
+            AssertAltTapOpensTheMenuBar(app, menu, outside);
+        }
+        finally
+        {
+            overlay.Children.Remove(outside);
+        }
+    }
+
+    [AvaloniaFact]
     public void Shortcut_RunsWithoutAFocusedElement()
     {
         using var app = new HeadlessAppFixture();
@@ -560,6 +652,62 @@ public sealed class KeyboardShortcutShellTests
         // which would hide Alt chords from the access-key handler. Only the fixed Escape is a window binding.
         Assert.DoesNotContain(window.KeyBindings, binding => binder.OwnedBindings.Contains(binding));
         Assert.Single(window.KeyBindings, binding => new KeyGesture(Key.Escape).Equals(binding.Gesture));
+    }
+
+    private static HeadlessAppFixture CreateWithAltWorkspaceShortcuts()
+    {
+        var settings = new AppSettings();
+        settings.KeyboardShortcuts[ShortcutActionId.WorkspaceSave] = "Alt+F5";
+        settings.KeyboardShortcuts[ShortcutActionId.WorkspacePokemon] = "Alt+F6";
+        var app = new HeadlessAppFixture(services => services.AddSingleton(settings));
+        app.LoadSaveInstance(new SAV6XY());
+        Assert.NotNull(app.Find<Menu>());
+        return app;
+    }
+
+    // Alt+F5 from the focused box viewer: the switch to the Save workspace removes the focused control.
+    private static void SwitchToSaveWithAltF5(HeadlessAppFixture app, Menu menu)
+    {
+        app.Focus(app.Find<BoxViewer>()!);
+        AltDown(app);
+        PressWithAltHeld(app, PhysicalKey.F5);
+        AltUp(app);
+        Assert.Equal(MainWorkspace.Save, app.ViewModel.ActiveWorkspace);
+        Assert.Null(app.Window.FocusManager!.GetFocusedElement());
+        Assert.False(menu.IsOpen);
+    }
+
+    private static void AltDown(HeadlessAppFixture app) =>
+        app.Window.KeyPressQwerty(PhysicalKey.AltLeft, RawInputModifiers.Alt);
+
+    private static void AltUp(HeadlessAppFixture app)
+    {
+        app.Window.KeyReleaseQwerty(PhysicalKey.AltLeft, RawInputModifiers.None);
+        app.Pump();
+    }
+
+    // Presses and releases a key in the main window while Alt stays held.
+    private static void PressWithAltHeld(HeadlessAppFixture app, PhysicalKey key)
+    {
+        app.Window.KeyPressQwerty(key, RawInputModifiers.Alt);
+        app.Window.KeyReleaseQwerty(key, RawInputModifiers.Alt);
+        app.Pump();
+    }
+
+    // A bare Alt tap with focus inside the window opens the menu bar, which it cannot do if the binder
+    // consumed the release or left the access-key handler waiting for an earlier release.
+    private static void AssertAltTapOpensTheMenuBar(HeadlessAppFixture app, Menu menu, Control focusTarget)
+    {
+        app.Focus(focusTarget);
+        Assert.True(focusTarget.IsKeyboardFocusWithin);
+
+        AltDown(app);
+        AltUp(app);
+        Assert.True(menu.IsOpen);
+
+        menu.Close();
+        app.Pump();
+        Assert.False(menu.IsOpen);
     }
 
     private static BoxViewerViewModel MoveSlotZeroToSlotOne(HeadlessAppFixture app)

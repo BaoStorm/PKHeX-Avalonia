@@ -82,6 +82,45 @@ public sealed class ShortcutRecorderTests
     }
 
     [AvaloniaFact]
+    public void ReleasingOneOfTwoKeysOfAModifier_KeepsTheModifier()
+    {
+        using var host = Host.Create(new AppSettings(), Encounter);
+        var prompt = LocalizedStrings.Instance["Shortcuts_Recording"];
+        host.Press(PhysicalKey.Enter);
+
+        host.Down(PhysicalKey.ControlLeft, RawInputModifiers.Control);
+        host.Down(PhysicalKey.ControlRight, RawInputModifiers.Control);
+        Assert.Equal("Ctrl+…", host.Recorder.Content);
+
+        // The right Ctrl key is still down, so Ctrl is still held.
+        host.Up(PhysicalKey.ControlLeft, RawInputModifiers.Control);
+        Assert.Equal("Ctrl+…", host.Recorder.PartialText);
+        Assert.Equal("Ctrl+…", host.Recorder.Content);
+
+        // Releasing it ends Ctrl, also on a platform that still reports Ctrl in that key-up event.
+        host.Up(PhysicalKey.ControlRight, RawInputModifiers.Control);
+        Assert.Null(host.Recorder.PartialText);
+        Assert.Equal(prompt, host.Recorder.Content);
+        Assert.True(host.Recorder.IsRecording);
+
+        // The right Ctrl key comes up while another window has focus, so the recorder never gets that
+        // release. The next key event that does not report Ctrl shows that it is no longer held.
+        host.Down(PhysicalKey.ControlLeft, RawInputModifiers.Control);
+        host.Down(PhysicalKey.ControlRight, RawInputModifiers.Control);
+        host.Up(PhysicalKey.ControlLeft);
+        Assert.Null(host.Recorder.PartialText);
+        Assert.Equal(prompt, host.Recorder.Content);
+
+        // What the button showed is what gets recorded.
+        host.Down(PhysicalKey.ControlLeft, RawInputModifiers.Control);
+        host.Down(PhysicalKey.ControlRight, RawInputModifiers.Control);
+        host.Up(PhysicalKey.ControlLeft, RawInputModifiers.Control);
+        Assert.Equal("Ctrl+…", host.Recorder.Content);
+        host.Press(PhysicalKey.E, RawInputModifiers.Control);
+        Assert.Equal(new ShortcutChord(ShortcutModifiers.Control, "E"), host.Row.Chord);
+    }
+
+    [AvaloniaFact]
     public void AccessibleName_FollowsTheShortcutAndTheRecordingState()
     {
         using var host = Host.Create(new AppSettings(), Encounter);

@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using PKHeX.Presentation.ViewModels;
 
 namespace PKHeX.Avalonia.Input;
@@ -34,9 +35,19 @@ namespace PKHeX.Avalonia.Input;
 /// so the access-key handler's bubbling handler, which runs Alt access keys, comes after it.</item>
 /// </list>
 /// <para>
-/// Without a focused element the access-key handler ignores key presses but still opens the menu bar
-/// when Alt is released after an earlier Alt chord. After an Alt chord that ran from the window
-/// handler, the binder therefore consumes the Alt release before the access-key handler sees it.
+/// The access-key handler does not open the menu bar on Alt's release when, during that Alt press, it
+/// saw the Alt key and then another key while keyboard focus was inside the window. It ignores every
+/// key while no element inside the window has focus, but it still opens the menu bar on the release.
+/// The binder applies the same rule to the same key events, with its own tunnelling handlers on the
+/// window, which run just before the access-key handler's. When a shortcut with Alt ran during an Alt
+/// press whose release the access-key handler would not ignore, the binder consumes that release.
+/// In all other cases the release is not consumed, so the access-key handler resets its own state.
+/// </para>
+/// <para>
+/// Each Alt press that this window sees starts the state again. A release that this window never gets
+/// (because the shortcut moved focus to another window) therefore cannot make the binder consume a
+/// later release. Deactivation does not reset the state: Alt can still be held when the window becomes
+/// active again, and its release then belongs to the press that ran the shortcut.
 /// </para>
 /// <para>
 /// Only keys that come from this window are handled. A native popup (a menu or a context menu) is a
@@ -55,8 +66,12 @@ internal sealed class KeyboardShortcutBinder : IDisposable
     private readonly IDisposable _windowHandler;
     private readonly List<KeyBinding> _owned = [];
     private KeyEventArgs? _seenByContent;
-    private bool _consumeAltRelease;
     private bool _disposed;
+
+    // The current Alt press, as the access-key handler sees it (see remarks).
+    private bool _accessKeysSawAltPress;
+    private bool _accessKeysIgnoreAltRelease;
+    private bool _altShortcutRan;
 
     /// <exception cref="InvalidOperationException">The window has no content yet.</exception>
     public KeyboardShortcutBinder(Window window, MainWindowViewModel viewModel)
@@ -67,10 +82,12 @@ internal sealed class KeyboardShortcutBinder : IDisposable
             ?? throw new InvalidOperationException("The window's content must exist before its shortcuts are bound.");
 
         _viewModel.ShortcutBindingsChanged += OnShortcutBindingsChanged;
+        // Added after the access-key handler's, so they run just before it (tunnelling handlers run in
+        // reverse order) and get the same keys with the same focus. Like it, they skip handled keys.
+        _window.AddHandler(InputElement.KeyDownEvent, OnWindowPreviewKeyDown, RoutingStrategies.Tunnel);
+        _window.AddHandler(InputElement.KeyUpEvent, OnWindowPreviewKeyUp, RoutingStrategies.Tunnel);
         _content.AddHandler(InputElement.KeyDownEvent, OnContentKeyDown, RoutingStrategies.Tunnel, handledEventsToo: true);
         _windowHandler = InputElement.KeyDownEvent.AddClassHandler<Window>(OnWindowKeyDown, RoutingStrategies.Bubble);
-        // Added after the access-key handler's, so it runs first (tunnelling handlers run in reverse).
-        _window.AddHandler(InputElement.KeyUpEvent, OnWindowKeyUp, RoutingStrategies.Tunnel);
         Rebind();
     }
 
@@ -84,12 +101,37 @@ internal sealed class KeyboardShortcutBinder : IDisposable
 
         _disposed = true;
         _viewModel.ShortcutBindingsChanged -= OnShortcutBindingsChanged;
+        _window.RemoveHandler(InputElement.KeyDownEvent, OnWindowPreviewKeyDown);
+        _window.RemoveHandler(InputElement.KeyUpEvent, OnWindowPreviewKeyUp);
         _content.RemoveHandler(InputElement.KeyDownEvent, OnContentKeyDown);
         _windowHandler.Dispose();
-        _window.RemoveHandler(InputElement.KeyUpEvent, OnWindowKeyUp);
         _owned.Clear();
         _seenByContent = null;
-        _consumeAltRelease = false;
+        ResetAltPress();
+    }
+
+    private void OnWindowPreviewKeyDown(object? sender, KeyEventArgs e)
+    {
+        var focusInside = IsFocusInsideWindow();
+        if (IsAltKey(e.Key))
+        {
+            ResetAltPress();
+            _accessKeysSawAltPress = focusInside;
+        }
+        else if (_accessKeysSawAltPress && focusInside)
+        {
+            _accessKeysIgnoreAltRelease = true;
+        }
+    }
+
+    private void OnWindowPreviewKeyUp(object? sender, KeyEventArgs e)
+    {
+        if (!IsAltKey(e.Key))
+            return;
+
+        if (_altShortcutRan && !_accessKeysIgnoreAltRelease)
+            e.Handled = true;
+        ResetAltPress();
     }
 
     private void OnContentKeyDown(object? sender, KeyEventArgs e)
@@ -105,18 +147,6 @@ internal sealed class KeyboardShortcutBinder : IDisposable
             return;
 
         TryHandle(e);
-        if (e.Handled && (e.KeyModifiers & KeyModifiers.Alt) != 0)
-            _consumeAltRelease = true;
-    }
-
-    private void OnWindowKeyUp(object? sender, KeyEventArgs e)
-    {
-        if (e.Key is not (Key.LeftAlt or Key.RightAlt))
-            return;
-
-        if (_consumeAltRelease)
-            e.Handled = true;
-        _consumeAltRelease = false;
     }
 
     private void TryHandle(KeyEventArgs e)
@@ -128,11 +158,28 @@ internal sealed class KeyboardShortcutBinder : IDisposable
 
         foreach (var binding in _owned.ToArray())
         {
-            if (e.Handled)
-                break;
             binding.TryHandle(e);
+            if (!e.Handled)
+                continue;
+
+            if ((e.KeyModifiers & KeyModifiers.Alt) != 0)
+                _altShortcutRan = true;
+            return;
         }
     }
+
+    private void ResetAltPress()
+    {
+        _accessKeysSawAltPress = false;
+        _accessKeysIgnoreAltRelease = false;
+        _altShortcutRan = false;
+    }
+
+    // The access-key handler's own test: the focused element is inside the window, not the window itself.
+    private bool IsFocusInsideWindow() =>
+        _window.FocusManager?.GetFocusedElement() is Visual focused && _window.IsVisualAncestorOf(focused);
+
+    private static bool IsAltKey(Key key) => key is Key.LeftAlt or Key.RightAlt;
 
     private void OnShortcutBindingsChanged(object? sender, EventArgs e)
     {
