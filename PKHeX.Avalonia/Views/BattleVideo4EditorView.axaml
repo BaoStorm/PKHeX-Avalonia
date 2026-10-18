@@ -1,0 +1,94 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:PKHeX.Presentation.ViewModels;assembly=PKHeX.Presentation"
+             xmlns:loc="using:PKHeX.Avalonia.Localization"
+             x:Class="PKHeX.Avalonia.Views.BattleVideo4EditorView"
+             x:DataType="vm:BattleVideo4EditorViewModel"
+             Width="760" Height="560" MinWidth="460" MinHeight="380">
+    <UserControl.Styles>
+        <Style Selector="TextBlock.status-error">
+            <Setter Property="Foreground" Value="{DynamicResource ThemeErrorBrush}" />
+        </Style>
+    </UserControl.Styles>
+    <UserControl.KeyBindings>
+        <KeyBinding Gesture="Escape" Command="{Binding CancelCommand}" />
+    </UserControl.KeyBindings>
+
+    <Border Classes="view-container">
+        <DockPanel>
+            <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right"
+                        Spacing="8" Margin="0,12,0,0">
+                <Button Content="{loc:Loc Common_Cancel}" Command="{Binding CancelCommand}" />
+                <Button Content="{loc:Loc Common_Save}" Command="{Binding SaveCommand}" />
+            </StackPanel>
+
+            <StackPanel DockPanel.Dock="Top" Margin="0,0,0,8" Spacing="4">
+                <TextBlock Text="{loc:Loc Dialog_BattleVideo4}" FontSize="20" FontWeight="SemiBold" />
+                <TextBlock Text="{loc:Loc BattleVideo4_Help}" Classes="form-hint" TextWrapping="Wrap" />
+                <TextBlock Text="{Binding Message}" IsVisible="{Binding HasMessage}" TextWrapping="Wrap"
+                           Classes.status-error="{Binding IsMessageError}" />
+            </StackPanel>
+
+            <Grid ColumnDefinitions="200,8,*">
+                <ListBox ItemsSource="{Binding Slots}" SelectedItem="{Binding SelectedSlot}"
+                         AutomationProperties.Name="{loc:Loc BattleVideo4_Slots}">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="vm:BattleVideo4SlotViewModel">
+                            <TextBlock Text="{Binding Label}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Label}" />
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+
+                <DockPanel Grid.Column="2">
+                    <StackPanel DockPanel.Dock="Top" Spacing="4" Margin="0,0,0,8">
+                        <TextBlock Text="{Binding SelectedTitle}" FontWeight="SemiBold" />
+                        <TextBlock Text="{Binding SelectedStatus}" Classes="form-hint" TextWrapping="Wrap" />
+                        <WrapPanel Orientation="Horizontal">
+                            <Button Content="{loc:Loc BattleVideo4_Import}" Command="{Binding ImportCommand}" Margin="0,4,8,0" />
+                            <Button Content="{loc:Loc BattleVideo4_Export}" Command="{Binding ExportCommand}" Margin="0,4,8,0" />
+                            <Button Content="{loc:Loc BattleVideo4_ResetSlot}" Command="{Binding ResetSlotCommand}" Margin="0,4,8,0" />
+                            <CheckBox Content="{loc:Loc BattleVideo4_ExportDecrypted}" IsChecked="{Binding ExportDecrypted}"
+                                      IsEnabled="{Binding HasSelectedVideo}" Margin="0,4,0,0" />
+                        </WrapPanel>
+                    </StackPanel>
+
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" IsVisible="{Binding HasSelectedVideo}">
+                        <ItemsControl ItemsSource="{Binding Players}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <UniformGrid Columns="2" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:BattleVideo4PlayerViewModel">
+                                    <Border Classes="editor-section-padded" Margin="0,0,6,6" Padding="8">
+                                        <StackPanel Spacing="2">
+                                            <TextBlock Text="{Binding Header}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Text="-" IsVisible="{Binding IsEmpty}" />
+                                            <ItemsControl ItemsSource="{Binding Members}">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate x:DataType="vm:BattleVideo4MemberViewModel">
+                                                        <Grid ColumnDefinitions="20,36,*,*,Auto" Margin="0,1">
+                                                            <TextBlock Text="{Binding Position}" VerticalAlignment="Center" />
+                                                            <Image Grid.Column="1" Width="34" Height="28"
+                                                                   Source="{Binding Sprite, Converter={StaticResource PngBytesToBitmap}}" />
+                                                            <TextBlock Grid.Column="2" Text="{Binding Species}" VerticalAlignment="Center"
+                                                                       TextTrimming="CharacterEllipsis" Margin="4,0" />
+                                                            <TextBlock Grid.Column="3" Text="{Binding Nickname}" VerticalAlignment="Center"
+                                                                       TextTrimming="CharacterEllipsis" Margin="4,0" />
+                                                            <TextBlock Grid.Column="4" Text="{Binding LevelText}" VerticalAlignment="Center" />
+                                                        </Grid>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </DockPanel>
+            </Grid>
+        </DockPanel>
+    </Border>
+</UserControl>
