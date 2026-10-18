@@ -243,6 +243,17 @@ public partial class MainWindowViewModel
             T("Dialog_SuperTrainingEditor"));
     }
 
+    private bool CanOpenBattleVideo4() => CurrentSave is SAV4Pt or SAV4HGSS;
+
+    [RelayCommand(CanExecute = nameof(CanOpenBattleVideo4))]
+    private async Task OpenBattleVideo4Async()
+    {
+        if (CurrentSave is not SAV4 save || !CanOpenBattleVideo4()) return;
+        await _windowService.ShowDialogAsync(
+            new BattleVideo4EditorViewModel(save, _dialogService, _spriteRenderer),
+            T("Dialog_BattleVideo4"));
+    }
+
     [RelayCommand(CanExecute = nameof(HasSave))]
     private async Task OpenApricornAsync()
     {

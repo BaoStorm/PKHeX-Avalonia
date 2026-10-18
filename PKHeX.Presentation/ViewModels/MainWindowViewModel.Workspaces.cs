@@ -259,6 +259,8 @@ public partial class MainWindowViewModel
             "Menu_Gen4", () => CurrentSave is SAV4Sinnoh);
         RegisterConditionalMenuCapability("Dialog_GearEditorBattleRevolution", OpenGearBRCommand,
             "Menu_Gen4", () => CurrentSave is SAV4BR);
+        RegisterConditionalMenuCapability("Dialog_BattleVideo4", OpenBattleVideo4Command,
+            "Menu_Gen4", CanOpenBattleVideo4);
 
         RegisterMenuCapability("Menu_Misc", OpenMisc5Command, "Menu_Gen5");
         RegisterMenuCapability("Menu_Pokedex", OpenPokedexCommand, "Menu_Gen5");
