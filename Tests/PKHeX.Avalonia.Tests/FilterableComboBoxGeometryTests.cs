@@ -41,7 +41,7 @@ public sealed class FilterableComboBoxGeometryTests
         var encounterFields = encounterView.GetVisualDescendants().OfType<FilterableComboBox>().ToArray();
 
         Assert.Equal(11, editorFields.Count);
-        Assert.Single(encounterFields);
+        Assert.Equal(5, encounterFields.Length); // species + four required-move pickers
 
         foreach (var field in editorFields.Concat(encounterFields))
             AssertGeometry(field);
@@ -61,7 +61,7 @@ public sealed class FilterableComboBoxGeometryTests
             _ => { });
         var view = new EncounterDatabaseView { DataContext = viewModel };
         var window = Show(view, 900, 700);
-        var field = Assert.Single(view.GetVisualDescendants().OfType<FilterableComboBox>());
+        var field = view.GetVisualDescendants().OfType<FilterableComboBox>().First(f => AutomationProperties.GetName(f) == "Species");
 
         Assert.Equal("Species", AutomationProperties.GetName(field));
         Assert.True(field.Focusable);
@@ -76,6 +76,9 @@ public sealed class FilterableComboBoxGeometryTests
 
         var selected = viewModel.SpeciesList.Single(item => item.Value == 25);
         field.MinimumPopulateDelay = TimeSpan.Zero;
+        // Escape restores the committed "(Any)" text; select it so typing replaces it, as a user would.
+        window.KeyPressQwerty(PhysicalKey.A, RawInputModifiers.Control);
+        window.KeyReleaseQwerty(PhysicalKey.A, RawInputModifiers.Control);
         window.KeyTextInput(selected.Text);
         Pump(window);
         window.KeyPressQwerty(PhysicalKey.Enter, RawInputModifiers.None);
