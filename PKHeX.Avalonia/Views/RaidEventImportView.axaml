@@ -1,0 +1,87 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:PKHeX.Presentation.ViewModels;assembly=PKHeX.Presentation"
+             xmlns:loc="using:PKHeX.Avalonia.Localization"
+             x:Class="PKHeX.Avalonia.Views.RaidEventImportView"
+             x:DataType="vm:RaidEventImportViewModel"
+             Width="640" Height="540" MinWidth="420" MinHeight="360">
+    <UserControl.Styles>
+        <Style Selector="TextBlock.status-error">
+            <Setter Property="Foreground" Value="{DynamicResource ThemeErrorBrush}" />
+        </Style>
+    </UserControl.Styles>
+    <UserControl.KeyBindings>
+        <KeyBinding Gesture="Escape" Command="{Binding CancelCommand}" />
+    </UserControl.KeyBindings>
+
+    <Border Classes="view-container">
+        <DockPanel>
+            <StackPanel DockPanel.Dock="Bottom"
+                        Orientation="Horizontal"
+                        HorizontalAlignment="Right"
+                        Spacing="8"
+                        Margin="0,12,0,0">
+                <Button Content="{loc:Loc Common_Cancel}" Command="{Binding CancelCommand}" />
+                <Button Content="{loc:Loc RaidEventImport_Apply}" Command="{Binding ApplyCommand}" />
+            </StackPanel>
+
+            <StackPanel DockPanel.Dock="Top" Margin="0,0,0,8" Spacing="4">
+                <TextBlock Text="{loc:Loc Dialog_RaidEventImport}" FontSize="20" FontWeight="SemiBold" />
+                <TextBlock Text="{Binding TargetLabel}" Classes="form-hint" />
+                <TextBlock Text="{loc:Loc RaidEventImport_Help}" Classes="form-hint" TextWrapping="Wrap" />
+                <Grid ColumnDefinitions="Auto,*" Margin="0,6,0,0">
+                    <Button Content="{loc:Loc RaidEventImport_ChooseFolder}"
+                            Command="{Binding ChooseFolderCommand}"
+                            IsEnabled="{Binding IsSupported}" />
+                    <TextBlock Grid.Column="1" Text="{Binding PackagePath}" Margin="8,0,0,0"
+                               VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                               ToolTip.Tip="{Binding PackagePath}" />
+                </Grid>
+                <TextBlock Text="{Binding PackageLabel}" IsVisible="{Binding IsStaged}" FontWeight="SemiBold" />
+                <TextBlock Text="{Binding IdentifierLabel}" IsVisible="{Binding IsStaged}" Classes="form-hint" />
+                <TextBlock Text="{Binding StatusText}" IsVisible="{Binding HasStatus}" TextWrapping="Wrap"
+                           Classes.status-error="{Binding IsError}" />
+            </StackPanel>
+
+            <StackPanel DockPanel.Dock="Bottom" Spacing="4" Margin="0,8,0,0" IsVisible="{Binding HasWarnings}">
+                <ItemsControl ItemsSource="{Binding Warnings}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="x:String">
+                            <TextBlock Text="{Binding}" TextWrapping="Wrap" Margin="0,2" />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <CheckBox Content="{loc:Loc RaidEventImport_Acknowledge}"
+                          IsChecked="{Binding IsAcknowledged}"
+                          IsVisible="{Binding RequiresAcknowledgement}" />
+            </StackPanel>
+
+            <Border Classes="editor-section-padded" Padding="8" IsVisible="{Binding IsStaged}">
+                <DockPanel>
+                    <Grid DockPanel.Dock="Top" ColumnDefinitions="2*,2*,90,*" Margin="4,0,4,4">
+                        <TextBlock Text="{loc:Loc RaidEventImport_Column_Table}" FontWeight="SemiBold" />
+                        <TextBlock Grid.Column="1" Text="{loc:Loc RaidEventImport_Column_File}" FontWeight="SemiBold" />
+                        <TextBlock Grid.Column="2" Text="{loc:Loc RaidEventImport_Column_Size}" FontWeight="SemiBold" />
+                        <TextBlock Grid.Column="3" Text="{loc:Loc RaidEventImport_Column_Change}" FontWeight="SemiBold" />
+                    </Grid>
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <ItemsControl ItemsSource="{Binding Blocks}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:RaidEventBlockRowViewModel">
+                                    <Grid ColumnDefinitions="2*,2*,90,*" Margin="4,3">
+                                        <TextBlock Text="{Binding TableName}" TextTrimming="CharacterEllipsis"
+                                                   ToolTip.Tip="{Binding BlockKey}" />
+                                        <TextBlock Grid.Column="1" Text="{Binding FileName}" TextTrimming="CharacterEllipsis"
+                                                   ToolTip.Tip="{Binding FileName}" />
+                                        <TextBlock Grid.Column="2" Text="{Binding Size}" />
+                                        <TextBlock Grid.Column="3" Text="{Binding ChangeText}" TextWrapping="Wrap" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </DockPanel>
+            </Border>
+        </DockPanel>
+    </Border>
+</UserControl>

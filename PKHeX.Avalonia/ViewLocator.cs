@@ -104,6 +104,7 @@ public static class ViewLocator
         [typeof(RTC3EditorViewModel)] = () => new RTC3Editor(),
         [typeof(RTCEditorViewModel)] = () => new RTCEditor(),
         [typeof(Raid9EditorViewModel)] = () => new Raid9Editor(),
+        [typeof(RaidEventImportViewModel)] = () => new RaidEventImportView(),
         [typeof(RaidEditorViewModel)] = () => new RaidEditor(),
         [typeof(RecordsEditorViewModel)] = () => new RecordsEditorView(),
         [typeof(RibbonEditorViewModel)] = () => new RibbonEditor(),
