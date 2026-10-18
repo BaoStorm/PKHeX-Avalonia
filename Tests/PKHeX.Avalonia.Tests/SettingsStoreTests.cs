@@ -145,6 +145,101 @@ public sealed class SettingsStoreTests : IDisposable
         Assert.True(future.GetProperty("enabled").GetBoolean());
     }
 
+    [Fact]
+    public void KeyboardShortcuts_RoundTrip()
+    {
+        var store = NewStore();
+        var toSave = new AppSettings();
+        toSave.KeyboardShortcuts["OpenEncounterDatabase"] = "Primary+Shift+N";
+        toSave.KeyboardShortcuts["OpenBoxReport"] = "";
+        toSave.KeyboardShortcuts["FutureAction"] = "not a chord";
+        store.Save(toSave);
+
+        var loaded = NewStore().Load();
+
+        Assert.Equal(toSave.KeyboardShortcuts, loaded.KeyboardShortcuts);
+        using var doc = JsonDocument.Parse(File.ReadAllText(_paths.ConfigFilePath));
+        Assert.Equal("Primary+Shift+N",
+            doc.RootElement.GetProperty("KeyboardShortcuts").GetProperty("OpenEncounterDatabase").GetString());
+    }
+
+    [Fact]
+    public void KeyboardShortcuts_MissingKey_LoadsAnEmptyMap()
+    {
+        Directory.CreateDirectory(_paths.ConfigDirectory);
+        File.WriteAllText(_paths.ConfigFilePath, "{ \"DisplayLanguage\": \"es\" }");
+
+        var loaded = NewStore().Load();
+
+        Assert.Equal("es", loaded.DisplayLanguage);
+        Assert.NotNull(loaded.KeyboardShortcuts);
+        Assert.Empty(loaded.KeyboardShortcuts);
+    }
+
+    [Fact]
+    public void KeyboardShortcuts_JsonNull_LoadsWithoutRecovery()
+    {
+        Directory.CreateDirectory(_paths.ConfigDirectory);
+        File.WriteAllText(_paths.ConfigFilePath,
+            "{ \"DisplayLanguage\": \"fr\", \"KeyboardShortcuts\": null }");
+
+        var loaded = NewStore().Load();
+
+        Assert.Equal("fr", loaded.DisplayLanguage);
+        Assert.NotNull(loaded.KeyboardShortcuts);
+        Assert.Empty(loaded.KeyboardShortcuts);
+        Assert.False(File.Exists(_paths.ConfigFilePath + ".bak"), "a null shortcut map must not be treated as corrupt");
+    }
+
+    [Fact]
+    public void KeyboardShortcuts_NullEntry_LoadsWithoutRecovery()
+    {
+        Directory.CreateDirectory(_paths.ConfigDirectory);
+        File.WriteAllText(_paths.ConfigFilePath,
+            "{ \"DisplayLanguage\": \"it\", \"KeyboardShortcuts\": { \"OpenEncounterDatabase\": null, \"OpenBoxReport\": \"\" } }");
+
+        var loaded = NewStore().Load();
+
+        Assert.Equal("it", loaded.DisplayLanguage);
+        Assert.Equal(string.Empty, loaded.KeyboardShortcuts["OpenBoxReport"]);
+        Assert.False(File.Exists(_paths.ConfigFilePath + ".bak"));
+    }
+
+    [Fact]
+    public void KeyboardShortcuts_SurviveAnOlderBuildThatDoesNotKnowThem()
+    {
+        // A newer build writes the shortcut map.
+        var newer = new AppSettings { DisplayLanguage = "ja" };
+        newer.KeyboardShortcuts["OpenEncounterDatabase"] = "Primary+Shift+N";
+        newer.KeyboardShortcuts["OpenBoxReport"] = "";
+        NewStore().Save(newer);
+
+        // An older build has no KeyboardShortcuts property: the map lands in its top-level
+        // extension data and is written back unchanged when that build saves.
+        var older = JsonSerializer.Deserialize<SettingsWithoutShortcuts>(File.ReadAllText(_paths.ConfigFilePath));
+        Assert.NotNull(older);
+        Assert.NotNull(older.ExtensionData);
+        Assert.True(older.ExtensionData.ContainsKey("KeyboardShortcuts"));
+        older.DisplayLanguage = "ko";
+        File.WriteAllText(_paths.ConfigFilePath, JsonSerializer.Serialize(older));
+
+        // The newer build reads its shortcuts back.
+        var loaded = NewStore().Load();
+        Assert.Equal("ko", loaded.DisplayLanguage);
+        Assert.Equal("Primary+Shift+N", loaded.KeyboardShortcuts["OpenEncounterDatabase"]);
+        Assert.Equal(string.Empty, loaded.KeyboardShortcuts["OpenBoxReport"]);
+        Assert.True(loaded.ExtensionData is null || !loaded.ExtensionData.ContainsKey("KeyboardShortcuts"));
+    }
+
+    /// <summary>Stand-in for an older <see cref="AppSettings"/> that predates keyboard shortcuts.</summary>
+    private sealed class SettingsWithoutShortcuts
+    {
+        public string DisplayLanguage { get; set; } = "en";
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.Dictionary<string, JsonElement>? ExtensionData { get; set; }
+    }
+
     private sealed class TempAppPaths : IAppPaths
     {
         public required string ConfigDirectory { get; init; }

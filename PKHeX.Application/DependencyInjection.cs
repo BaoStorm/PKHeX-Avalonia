@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using PKHeX.Application.Abstractions;
 using PKHeX.Application.Services;
+using PKHeX.Application.Shortcuts;
 
 namespace PKHeX.Application;
 
@@ -11,6 +12,12 @@ public static class DependencyInjection
     {
         services.AddSingleton<LanguageService>();
         services.AddSingleton<UndoRedoService>();
+        // Keyboard shortcut overrides. The host registers an IShortcutPlatform; without one the
+        // framework-free Windows/Linux conventions apply.
+        services.AddSingleton(sp => new KeyboardShortcutService(
+            sp.GetRequiredService<AppSettings>(),
+            sp.GetRequiredService<ISettingsStore>(),
+            sp.GetService<IShortcutPlatform>() ?? StandardShortcutPlatform.Instance));
         // Workflow use cases (PKHeX.Application.UseCases) are stateless and constructed at call sites.
         return services;
     }

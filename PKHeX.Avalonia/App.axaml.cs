@@ -8,6 +8,7 @@ using PKHeX.Application.Abstractions;
 using PKHeX.Application.Services;
 using PKHeX.Infrastructure;
 using PKHeX.Infrastructure.Configuration;
+using PKHeX.Avalonia.Input;
 using PKHeX.Avalonia.Services;
 using PKHeX.Presentation.ViewModels;
 using PKHeX.Avalonia.Views;
@@ -131,6 +132,9 @@ public partial class App : global::Avalonia.Application
         services.AddSingleton<IThemeService>(sp => sp.GetRequiredService<ThemeService>());
         services.AddSingleton<UiDensityService>();
         services.AddSingleton<IUiDensityService>(sp => sp.GetRequiredService<UiDensityService>());
+        // Platform keyboard conventions for the configurable shortcuts (command modifier, reserved
+        // text/view/system gestures, display text). KeyboardShortcutService picks it up from AddApplication.
+        services.AddSingleton<IShortcutPlatform, AvaloniaShortcutPlatform>();
 
         // Update-check flow shared by the silent startup check and the manual "Check for Updates"
         // buttons (Settings/About). Singleton so the status-bar notification it raises persists for

@@ -29,10 +29,17 @@ public sealed class WindowService : IWindowService
     // is rebuilt on save change) returns to where the user last left it for this session.
     private static readonly Dictionary<string, (PixelPoint Position, double Width, double Height)> ToolBounds = new();
 
+    // Modal dialogs this service opened that are still open, oldest first. A dialog opened from
+    // another dialog (the shortcut editor or an update dialog started from Settings) is owned by the
+    // innermost one, so it is really modal over the window the user clicked in.
+    private readonly List<Window> _openDialogs = [];
+
     public async Task ShowDialogAsync(object viewModel, string title)
     {
-        var owner = _getMainWindow();
-        if (owner is null) return;
+        // Size limits always follow the main window's screen; ownership follows the open dialogs.
+        var main = _getMainWindow();
+        if (main is null) return;
+        var owner = _openDialogs.LastOrDefault(window => window.IsVisible) ?? main;
 
         var isSettings = viewModel is SettingsViewModel;
         var dialog = new Window
@@ -42,8 +49,8 @@ public sealed class WindowService : IWindowService
             SizeToContent = isSettings ? SizeToContent.Manual : SizeToContent.WidthAndHeight,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
             CanResize = true,
-            MaxWidth = isSettings ? 620 : GetMaxWindowWidth(owner),
-            MaxHeight = isSettings ? 820 : GetToolMaxHeight(owner),
+            MaxWidth = isSettings ? 620 : GetMaxWindowWidth(main),
+            MaxHeight = isSettings ? 820 : GetToolMaxHeight(main),
         };
 
         if (isSettings)
@@ -55,7 +62,11 @@ public sealed class WindowService : IWindowService
         }
         else if (viewModel is UpdateDownloadViewModel or LegalityViewModel)
         {
-            ConfigureCompactUtilityBounds(dialog, viewModel is LegalityViewModel, GetMaxWindowWidth(owner), GetToolMaxHeight(owner));
+            ConfigureCompactUtilityBounds(dialog, viewModel is LegalityViewModel, GetMaxWindowWidth(main), GetToolMaxHeight(main));
+        }
+        else if (viewModel is KeyboardShortcutsViewModel)
+        {
+            ConfigureKeyboardShortcutsBounds(dialog);
         }
         else
         {
@@ -133,7 +144,41 @@ public sealed class WindowService : IWindowService
 
         dialog.Closed += (_, _) => (viewModel as IDisposable)?.Dispose();
 
-        await dialog.ShowDialog(owner);
+        _openDialogs.Add(dialog);
+        dialog.Closed += (_, _) => _openDialogs.Remove(dialog);
+        try
+        {
+            await dialog.ShowDialog(owner);
+        }
+        finally
+        {
+            _openDialogs.Remove(dialog);
+        }
+    }
+
+    /// <summary>
+    /// The shortcut editor is a long, scrolling list: a fixed initial size (remembered for the session
+    /// once the user resizes it) instead of measuring every row.
+    /// </summary>
+    internal static void ConfigureKeyboardShortcutsBounds(Window dialog)
+    {
+        var key = typeof(KeyboardShortcutsViewModel).FullName!;
+        dialog.SizeToContent = SizeToContent.Manual;
+        dialog.WindowState = WindowState.Normal;
+        dialog.MinWidth = Math.Min(480, dialog.MaxWidth);
+        dialog.MinHeight = Math.Min(400, dialog.MaxHeight);
+        var remembered = ToolBounds.TryGetValue(key, out var bounds) ? bounds : default;
+        dialog.Width = remembered.Width > 0
+            ? Math.Clamp(remembered.Width, dialog.MinWidth, dialog.MaxWidth)
+            : Math.Min(640, dialog.MaxWidth);
+        dialog.Height = remembered.Height > 0
+            ? Math.Clamp(remembered.Height, dialog.MinHeight, dialog.MaxHeight)
+            : Math.Min(580, dialog.MaxHeight);
+        dialog.Closed += (_, _) =>
+        {
+            if (dialog.Width > 0 && dialog.Height > 0)
+                ToolBounds[key] = (dialog.Position, dialog.Width, dialog.Height);
+        };
     }
 
     internal static void ConfigureAboutAutoSize(Window dialog)
@@ -240,9 +285,9 @@ public sealed class WindowService : IWindowService
     private static Window? MainWindow =>
         (global::Avalonia.Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
 
-    private static double GetToolMaxHeight(Window owner) => Math.Max(420, GetAvailableToolSize(owner).Height);
+    internal static double GetToolMaxHeight(Window owner) => Math.Max(420, GetAvailableToolSize(owner).Height);
 
-    private static double GetMaxWindowWidth(Window owner) => Math.Max(620, GetAvailableToolSize(owner).Width);
+    internal static double GetMaxWindowWidth(Window owner) => Math.Max(620, GetAvailableToolSize(owner).Width);
 
     private static Size GetAvailableToolSize(Window owner)
     {

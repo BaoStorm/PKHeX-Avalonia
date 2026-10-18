@@ -44,30 +44,26 @@
         </Style>
     </Window.Styles>
 
+    <!-- Configurable shortcuts run from KeyboardShortcutBinder (issue #224), which matches them in a
+         tunnelling KeyDown handler on the window's content so Alt chords do not open the menu bar.
+         Only the fixed Escape binding that closes the tool launcher is declared here. -->
     <Window.KeyBindings>
-        <KeyBinding Gesture="Ctrl+O" Command="{Binding OpenFileCommand}" />
-        <KeyBinding Gesture="Ctrl+S" Command="{Binding SaveFileCommand}" />
-        <KeyBinding Gesture="Ctrl+Shift+S" Command="{Binding SaveFileAsCommand}" />
-        <KeyBinding Gesture="Ctrl+K" Command="{Binding OpenToolLauncherCommand}" />
         <KeyBinding Gesture="Escape" Command="{Binding CloseToolLauncherCommand}" />
-        <KeyBinding Gesture="Ctrl+1" Command="{Binding SelectWorkspaceCommand}" CommandParameter="{x:Static vm:MainWorkspace.Pokemon}" />
-        <KeyBinding Gesture="Ctrl+2" Command="{Binding SelectWorkspaceCommand}" CommandParameter="{x:Static vm:MainWorkspace.Save}" />
-        <KeyBinding Gesture="Ctrl+3" Command="{Binding SelectWorkspaceCommand}" CommandParameter="{x:Static vm:MainWorkspace.Reports}" />
     </Window.KeyBindings>
 
     <DockPanel>
         <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto" MinHeight="35" Background="{DynamicResource ThemeBackgroundCardBrush}">
         <Menu Grid.Column="0" FontSize="11" VerticalAlignment="Center" Background="Transparent" BorderThickness="0">
             <MenuItem Header="{loc:Loc Menu_File}">
-                <MenuItem Header="{loc:Loc Menu_File_Open}" Command="{Binding OpenFileCommand}" InputGesture="Ctrl+O" />
-                <MenuItem Header="{loc:Loc Menu_File_Save}" Command="{Binding SaveFileCommand}" InputGesture="Ctrl+S" />
-                <MenuItem Header="{loc:Loc Menu_File_SaveAs}" Command="{Binding SaveFileAsCommand}" InputGesture="Ctrl+Shift+S" />
+                <MenuItem Header="{loc:Loc Menu_File_Open}" Command="{Binding OpenFileCommand}" InputGesture="{Binding Shortcuts.OpenFile.Shortcut, Converter={x:Static conv:ShortcutChordToKeyGestureConverter.Instance}}" />
+                <MenuItem Header="{loc:Loc Menu_File_Save}" Command="{Binding SaveFileCommand}" InputGesture="{Binding Shortcuts.SaveFile.Shortcut, Converter={x:Static conv:ShortcutChordToKeyGestureConverter.Instance}}" />
+                <MenuItem Header="{loc:Loc Menu_File_SaveAs}" Command="{Binding SaveFileAsCommand}" InputGesture="{Binding Shortcuts.SaveFileAs.Shortcut, Converter={x:Static conv:ShortcutChordToKeyGestureConverter.Instance}}" />
                 <Separator />
-                <MenuItem Header="{loc:Loc Menu_File_Close}" Command="{Binding CloseFileCommand}" />
+                <MenuItem Header="{loc:Loc Menu_File_Close}" Command="{Binding CloseFileCommand}" InputGesture="{Binding Shortcuts.CloseFile.Shortcut, Converter={x:Static conv:ShortcutChordToKeyGestureConverter.Instance}}" />
             </MenuItem>
             <MenuItem Header="{loc:Loc Menu_Edit}">
-                <MenuItem Header="{loc:Loc Menu_Options_Undo}" Command="{Binding UndoCommand}" InputGesture="Ctrl+Z" />
-                <MenuItem Header="{loc:Loc Menu_Options_Redo}" Command="{Binding RedoCommand}" InputGesture="Ctrl+Y" />
+                <MenuItem Header="{loc:Loc Menu_Options_Undo}" Command="{Binding UndoCommand}" InputGesture="{Binding Shortcuts.Undo.Shortcut, Converter={x:Static conv:ShortcutChordToKeyGestureConverter.Instance}}" />
+                <MenuItem Header="{loc:Loc Menu_Options_Redo}" Command="{Binding RedoCommand}" InputGesture="{Binding Shortcuts.Redo.Shortcut, Converter={x:Static conv:ShortcutChordToKeyGestureConverter.Instance}}" />
             </MenuItem>
             <MenuItem Header="{loc:Loc Menu_Tools}" ItemsSource="{Binding AvailableToolMenuGroups}">
                 <MenuItem.ItemContainerTheme>
@@ -81,21 +77,22 @@
                                 <Setter Property="AutomationProperties.Name" Value="{Binding Title}" />
                                 <Setter Property="Command" Value="{Binding Command}" />
                                 <Setter Property="IsEnabled" Value="{Binding IsAvailable}" />
+                                <Setter Property="InputGesture" Value="{Binding Shortcut, Converter={x:Static conv:ShortcutChordToKeyGestureConverter.Instance}}" />
                             </ControlTheme>
                         </Setter>
                     </ControlTheme>
                 </MenuItem.ItemContainerTheme>
             </MenuItem>
             <MenuItem Header="{loc:Loc Menu_Window}">
-                <MenuItem Header="{loc:Loc Tab_Trainer}" Command="{Binding SelectWorkspaceTabCommand}" CommandParameter="{x:Static vm:MainWindowViewModel.TrainerWorkspaceTabIndex}" />
-                <MenuItem Header="{loc:Loc Tab_Inventory}" Command="{Binding SelectWorkspaceTabCommand}" CommandParameter="{x:Static vm:MainWindowViewModel.InventoryWorkspaceTabIndex}" />
-                <MenuItem Header="{loc:Loc Tab_Events}" IsVisible="{Binding IsEventsWorkspace}" Command="{Binding SelectWorkspaceTabCommand}" CommandParameter="{x:Static vm:MainWindowViewModel.EventsWorkspaceTabIndex}" />
-                <MenuItem Header="{loc:Loc Tab_Gifts}" IsVisible="{Binding IsGiftsWorkspace}" Command="{Binding SelectWorkspaceTabCommand}" CommandParameter="{x:Static vm:MainWindowViewModel.GiftsWorkspaceTabIndex}" />
-                <MenuItem Header="{loc:Loc Tab_Batch}" Command="{Binding SelectWorkspaceTabCommand}" CommandParameter="{x:Static vm:MainWindowViewModel.BatchWorkspaceTabIndex}" />
-                <MenuItem Header="{loc:Loc Workspace_Reports}" Command="{Binding SelectWorkspaceCommand}" CommandParameter="{x:Static vm:MainWorkspace.Reports}" />
+                <MenuItem Header="{loc:Loc Tab_Trainer}" Command="{Binding SelectWorkspaceTabCommand}" CommandParameter="{x:Static vm:MainWindowViewModel.TrainerWorkspaceTabIndex}" InputGesture="{Binding Shortcuts.TabTrainer.Shortcut, Converter={x:Static conv:ShortcutChordToKeyGestureConverter.Instance}}" />
+                <MenuItem Header="{loc:Loc Tab_Inventory}" Command="{Binding SelectWorkspaceTabCommand}" CommandParameter="{x:Static vm:MainWindowViewModel.InventoryWorkspaceTabIndex}" InputGesture="{Binding Shortcuts.TabInventory.Shortcut, Converter={x:Static conv:ShortcutChordToKeyGestureConverter.Instance}}" />
+                <MenuItem Header="{loc:Loc Tab_Events}" IsVisible="{Binding IsEventsWorkspace}" Command="{Binding SelectWorkspaceTabCommand}" CommandParameter="{x:Static vm:MainWindowViewModel.EventsWorkspaceTabIndex}" InputGesture="{Binding Shortcuts.TabEvents.Shortcut, Converter={x:Static conv:ShortcutChordToKeyGestureConverter.Instance}}" />
+                <MenuItem Header="{loc:Loc Tab_Gifts}" IsVisible="{Binding IsGiftsWorkspace}" Command="{Binding SelectWorkspaceTabCommand}" CommandParameter="{x:Static vm:MainWindowViewModel.GiftsWorkspaceTabIndex}" InputGesture="{Binding Shortcuts.TabGifts.Shortcut, Converter={x:Static conv:ShortcutChordToKeyGestureConverter.Instance}}" />
+                <MenuItem Header="{loc:Loc Tab_Batch}" Command="{Binding SelectWorkspaceTabCommand}" CommandParameter="{x:Static vm:MainWindowViewModel.BatchWorkspaceTabIndex}" InputGesture="{Binding Shortcuts.TabBatch.Shortcut, Converter={x:Static conv:ShortcutChordToKeyGestureConverter.Instance}}" />
+                <MenuItem Header="{loc:Loc Workspace_Reports}" Command="{Binding SelectWorkspaceCommand}" CommandParameter="{x:Static vm:MainWorkspace.Reports}" InputGesture="{Binding Shortcuts.WorkspaceReports.Shortcut, Converter={x:Static conv:ShortcutChordToKeyGestureConverter.Instance}}" />
                 <Separator />
-                <MenuItem Header="{loc:Loc Tab_Box}" Command="{Binding SelectWorkspaceTabCommand}" CommandParameter="{x:Static vm:MainWindowViewModel.BoxWorkspaceTabIndex}" />
-                <MenuItem Header="{loc:Loc Tab_Party}" Command="{Binding SelectWorkspaceTabCommand}" CommandParameter="{x:Static vm:MainWindowViewModel.PartyWorkspaceTabIndex}" />
+                <MenuItem Header="{loc:Loc Tab_Box}" Command="{Binding SelectWorkspaceTabCommand}" CommandParameter="{x:Static vm:MainWindowViewModel.BoxWorkspaceTabIndex}" InputGesture="{Binding Shortcuts.TabBox.Shortcut, Converter={x:Static conv:ShortcutChordToKeyGestureConverter.Instance}}" />
+                <MenuItem Header="{loc:Loc Tab_Party}" Command="{Binding SelectWorkspaceTabCommand}" CommandParameter="{x:Static vm:MainWindowViewModel.PartyWorkspaceTabIndex}" InputGesture="{Binding Shortcuts.TabParty.Shortcut, Converter={x:Static conv:ShortcutChordToKeyGestureConverter.Instance}}" />
             </MenuItem>
             <MenuItem Header="{loc:Loc Menu_Help}">
                 <MenuItem Header="{loc:Loc Menu_Options_Language}"
@@ -112,8 +109,9 @@
                         </ControlTheme>
                     </MenuItem.ItemContainerTheme>
                 </MenuItem>
-                <MenuItem Header="{loc:Loc Menu_Options_Settings}" Command="{Binding OpenSettingsCommand}" />
-                <MenuItem Header="{loc:Loc Menu_Options_About}" Command="{Binding OpenAboutCommand}" />
+                <MenuItem Header="{loc:Loc Menu_Options_Settings}" Command="{Binding OpenSettingsCommand}" InputGesture="{Binding Shortcuts.OpenSettings.Shortcut, Converter={x:Static conv:ShortcutChordToKeyGestureConverter.Instance}}" />
+                <MenuItem Header="{loc:Loc Menu_Help_KeyboardShortcuts}" Command="{Binding OpenKeyboardShortcutsCommand}" InputGesture="{Binding Shortcuts.OpenKeyboardShortcuts.Shortcut, Converter={x:Static conv:ShortcutChordToKeyGestureConverter.Instance}}" />
+                <MenuItem Header="{loc:Loc Menu_Options_About}" Command="{Binding OpenAboutCommand}" InputGesture="{Binding Shortcuts.OpenAbout.Shortcut, Converter={x:Static conv:ShortcutChordToKeyGestureConverter.Instance}}" />
             </MenuItem>
         </Menu>
 
@@ -405,8 +403,9 @@
                                     <Button Classes="launcher-item"
                                             Command="{Binding Command}"
                                             Click="OnLauncherItemClick"
-                                            AutomationProperties.Name="{Binding Title}">
-                                        <Grid ColumnDefinitions="Auto,*">
+                                            AutomationProperties.Name="{Binding Title}"
+                                            AutomationProperties.AcceleratorKey="{Binding ShortcutText}">
+                                        <Grid ColumnDefinitions="Auto,*,Auto">
                                             <Border Classes="launcher-item-icon">
                                                 <Path Data="{Binding IconData, Converter={StaticResource PathGeometry}}" />
                                             </Border>
@@ -414,6 +413,11 @@
                                                 <TextBlock Text="{Binding Title}" Classes="launcher-item-title" />
                                                 <TextBlock Text="{Binding Description}" Classes="launcher-item-description" />
                                             </StackPanel>
+                                            <TextBlock Grid.Column="2"
+                                                       Classes="launcher-item-shortcut"
+                                                       Text="{Binding ShortcutText}"
+                                                       IsVisible="{Binding HasShortcut}"
+                                                       VerticalAlignment="Center" />
                                         </Grid>
                                     </Button>
                                 </DataTemplate>

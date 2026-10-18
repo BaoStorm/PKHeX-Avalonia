@@ -50,7 +50,8 @@ public partial class MainWindowViewModel
     [RelayCommand]
     private async Task OpenSettingsAsync()
     {
-        var vm = new SettingsViewModel(_settings, _settingsStore, _themeService, _uiDensityService, _languageService, _updateCoordinator, _linuxDesktopIntegration);
+        var vm = new SettingsViewModel(_settings, _settingsStore, _themeService, _uiDensityService, _languageService, _updateCoordinator, _linuxDesktopIntegration,
+            OpenKeyboardShortcutsAsync);
         await _windowService.ShowDialogAsync(vm, T("Dialog_Settings"));
         RefreshThemeSelection();
 

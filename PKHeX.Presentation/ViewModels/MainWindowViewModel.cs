@@ -6,6 +6,7 @@ using CommunityToolkit.Mvvm.Messaging;
 using PKHeX.Application.Abstractions;
 using PKHeX.Application.Abstractions.GiftRecords;
 using PKHeX.Application.Abstractions.LiveHex;
+using PKHeX.Application.Shortcuts;
 using PKHeX.Core;
 using PKHeX.Presentation.Localization;
 
@@ -161,7 +162,8 @@ public partial class MainWindowViewModel : ViewModelBase
         IUiDispatcher? uiDispatcher = null,
         IAudioPlaybackService? audioPlaybackService = null,
         IImageCodec? imageCodec = null,
-        ILinuxDesktopIntegrationService? linuxDesktopIntegration = null)
+        ILinuxDesktopIntegrationService? linuxDesktopIntegration = null,
+        KeyboardShortcutService? keyboardShortcuts = null)
     {
         _saveFileService = saveFileService;
         _dialogService = dialogService;
@@ -187,6 +189,9 @@ public partial class MainWindowViewModel : ViewModelBase
         _uiDispatcher = uiDispatcher;
         _audioPlaybackService = audioPlaybackService;
         _linuxDesktopIntegration = linuxDesktopIntegration;
+        // Tests that build the view model directly get the framework-free Windows/Linux conventions.
+        _shortcutService = keyboardShortcuts
+            ?? new KeyboardShortcutService(settings, settingsStore, StandardShortcutPlatform.Instance);
 
         // Mirror the coordinator's status-bar notification (raised by either the startup check or a
         // manual "Check for Updates" from the Settings/About dialogs) into the bound property.
@@ -219,6 +224,10 @@ public partial class MainWindowViewModel : ViewModelBase
         // (from persisted settings at startup) before the window renders.
         LocalizedStrings.Instance.SetLanguage(_languageService.CurrentLanguage);
         InitializeToolLauncherItems();
+        InitializeShortcuts();
+
+        // Stored overrides change through the shortcut editor; rebind on the UI thread.
+        _shortcutService.Changed += OnShortcutsChanged;
     }
 
     private void OnLanguageChanged()
@@ -226,6 +235,7 @@ public partial class MainWindowViewModel : ViewModelBase
         // Swap the shell's UI-chrome strings, then persist the choice so it survives a restart.
         LocalizedStrings.Instance.SetLanguage(_languageService.CurrentLanguage);
         RefreshToolLauncherLocalization();
+        Shortcuts.RefreshLocalization();
         if (!string.Equals(_settings.DisplayLanguage, _languageService.CurrentLanguage, StringComparison.Ordinal))
         {
             _settings.DisplayLanguage = _languageService.CurrentLanguage;

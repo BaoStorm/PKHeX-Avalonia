@@ -31,6 +31,23 @@ public sealed class AppSettings : IProgramSettings
     public EditorBehaviorSettings EditorBehavior { get; set; } = new();
     public List<ReportColumnLayout> BoxReportColumns { get; set; } = [];
 
+    /// <summary>
+    /// User overrides of the default keyboard shortcuts. Keys are action IDs (for example
+    /// <c>OpenEncounterDatabase</c>); values are portable chords where <c>Primary</c> means Ctrl on
+    /// Windows/Linux and ⌘ on macOS (for example <c>"Primary+Shift+N"</c>), and an empty string means
+    /// the user removed the shortcut. Only overrides are stored. Entries with unknown IDs or values
+    /// that cannot be used are kept unchanged, so a newer build's overrides survive older builds.
+    /// A JSON <c>null</c> loads as an empty map.
+    /// </summary>
+    /// <example><c>"KeyboardShortcuts": { "OpenEncounterDatabase": "Primary+Shift+N", "OpenBoxReport": "" }</c></example>
+    public Dictionary<string, string> KeyboardShortcuts
+    {
+        get => _keyboardShortcuts;
+        set => _keyboardShortcuts = value ?? new Dictionary<string, string>(StringComparer.Ordinal);
+    }
+
+    private Dictionary<string, string> _keyboardShortcuts = new(StringComparer.Ordinal);
+
     public string DisplayLanguage { get; set; } = "en";
 
     /// <summary>
