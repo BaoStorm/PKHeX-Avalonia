@@ -1,0 +1,102 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:PKHeX.Presentation.ViewModels;assembly=PKHeX.Presentation"
+             xmlns:controls="using:PKHeX.Avalonia.Controls"
+             xmlns:loc="using:PKHeX.Avalonia.Localization"
+             x:Class="PKHeX.Avalonia.Views.KeyboardShortcutsView"
+             x:DataType="vm:KeyboardShortcutsViewModel">
+
+    <!-- Escape closes the editor only while no row records keys: key bindings run before the
+         focused recorder, and CancelCommand is unavailable while recording, so the recorder then
+         receives Escape and cancels just the recording. No other key binding: it would take keys
+         away from the recorder. -->
+    <UserControl.KeyBindings>
+        <KeyBinding Gesture="Escape" Command="{Binding CancelCommand}" />
+    </UserControl.KeyBindings>
+
+    <UserControl.Styles>
+        <Style Selector="Button.shortcut-recorder">
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="FontSize" Value="11" />
+        </Style>
+        <Style Selector="Button.shortcut-recorder:recording">
+            <Setter Property="BorderBrush" Value="{DynamicResource CompactFocusBrush}" />
+            <Setter Property="BorderThickness" Value="2" />
+        </Style>
+        <Style Selector="Button.shortcut-row-action">
+            <Setter Property="Width" Value="28" />
+            <Setter Property="Height" Value="28" />
+            <Setter Property="FontSize" Value="15" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <!-- An unavailable row action (nothing to remove, already the default) stays a quiet glyph
+             instead of the filled disabled button surface. -->
+        <Style Selector="Button.shortcut-row-action:disabled">
+            <Setter Property="Opacity" Value="0.4" />
+        </Style>
+        <Style Selector="Button.shortcut-row-action:disabled /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource ThemeControlDisabledTextBrush}" />
+        </Style>
+    </UserControl.Styles>
+
+    <Grid RowDefinitions="Auto,Auto,*,54" Background="{DynamicResource ThemeBackgroundBaseBrush}">
+        <Border x:Name="ShortcutsHeader" Grid.Row="0" Background="{DynamicResource ThemeBackgroundCardBrush}" BorderBrush="{DynamicResource ThemeBorderMutedBrush}" BorderThickness="0,0,0,1" Padding="20,10">
+            <StackPanel Spacing="4">
+                <TextBlock Text="{loc:Loc Dialog_KeyboardShortcuts}" FontSize="20" FontWeight="SemiBold" TextWrapping="Wrap" />
+                <TextBlock Text="{loc:Loc Shortcuts_Description}" FontSize="11" Foreground="{DynamicResource ThemeTextSecondaryBrush}" TextWrapping="Wrap" />
+            </StackPanel>
+        </Border>
+
+        <Grid x:Name="ShortcutsSearchRow" Grid.Row="1" ColumnDefinitions="*,Auto" ColumnSpacing="12" Margin="20,10,20,6">
+            <TextBox x:Name="ShortcutsSearch" FontSize="11" Text="{Binding SearchText}" Watermark="{loc:Loc Shortcuts_Search_Watermark}" AutomationProperties.Name="{loc:Loc Shortcuts_Search_Watermark}" />
+            <TextBlock x:Name="ShortcutsSummary" Grid.Column="1" Text="{Binding CustomizedSummary}" FontSize="11" Foreground="{DynamicResource ThemeTextSecondaryBrush}" VerticalAlignment="Center" />
+        </Grid>
+
+        <ScrollViewer x:Name="ShortcutsList" Grid.Row="2" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+            <ItemsControl ItemsSource="{Binding FilteredRows}" Margin="20,0,20,12">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:KeyboardShortcutRowViewModel">
+                        <Border Classes="shortcut-row" BorderBrush="{DynamicResource ThemeBorderMutedBrush}" BorderThickness="0,0,0,1" Padding="0,6">
+                            <Grid ColumnDefinitions="*,160,Auto,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="6">
+                                <StackPanel Grid.Column="0" VerticalAlignment="Center" Spacing="1">
+                                    <TextBlock Text="{Binding Title}" FontSize="11" TextWrapping="Wrap" />
+                                    <TextBlock Text="{Binding CategoryTitle}" FontSize="10" Foreground="{DynamicResource ThemeTextSecondaryBrush}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding CategoryTitle}" />
+                                </StackPanel>
+                                <controls:ShortcutRecorder Grid.Column="1"
+                                                           Classes="compact-secondary shortcut-recorder"
+                                                           VerticalAlignment="Center"
+                                                           ShortcutText="{Binding ShortcutText}"
+                                                           RecordingText="{loc:Loc Shortcuts_Recording}"
+                                                           IsRecording="{Binding IsRecording, Mode=TwoWay}"
+                                                           RecordCommand="{Binding RecordCommand}"
+                                                           ClearCommand="{Binding ClearCommand}"
+                                                           AutomationProperties.Name="{Binding RecorderAutomationName}"
+                                                           AutomationProperties.HelpText="{loc:Loc Shortcuts_RecorderHelp}"
+                                                           ToolTip.Tip="{Binding DefaultText}" />
+                                <Button Grid.Column="2" Classes="icon-button shortcut-row-action" Content="×" Command="{Binding ClearCommand}"
+                                        AutomationProperties.Name="{Binding ClearAutomationName}" ToolTip.Tip="{Binding ClearAutomationName}" />
+                                <Button Grid.Column="3" Classes="icon-button shortcut-row-action" Content="↺" Command="{Binding ResetCommand}"
+                                        AutomationProperties.Name="{Binding ResetAutomationName}" ToolTip.Tip="{Binding DefaultText}" />
+                                <Grid Grid.Row="1" Grid.ColumnSpan="4" ColumnDefinitions="*,Auto" ColumnSpacing="8" Margin="0,4,0,0" IsVisible="{Binding HasMessage}">
+                                    <TextBlock Text="{Binding Message}" FontSize="11" Foreground="{DynamicResource ThemeTextSecondaryBrush}" TextWrapping="Wrap" VerticalAlignment="Center" AutomationProperties.LiveSetting="Polite" />
+                                    <Button Grid.Column="1" Classes="compact-secondary" FontSize="11" Content="{loc:Loc Shortcuts_Reassign}" Command="{Binding ReassignCommand}" IsVisible="{Binding HasPendingConflict}" />
+                                </Grid>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+
+        <Border Grid.Row="3" Background="{DynamicResource ThemeBackgroundCardBrush}" BorderBrush="{DynamicResource ThemeBorderMutedBrush}" BorderThickness="0,1,0,0" Padding="20,10">
+            <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8">
+                <Button x:Name="ShortcutsResetAll" Grid.Column="0" Classes="compact-secondary" FontSize="11" Content="{loc:Loc Shortcuts_ResetAll}" Command="{Binding ResetAllCommand}" />
+                <Button x:Name="ShortcutsCancel" Grid.Column="2" Classes="compact-secondary" FontSize="11" Content="{loc:Loc Common_Cancel}" Command="{Binding CancelCommand}" />
+                <Button x:Name="ShortcutsSave" Grid.Column="3" Classes="compact-primary" Padding="12,5" FontSize="11" Content="{loc:Loc Common_Save}" Command="{Binding SaveCommand}" />
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

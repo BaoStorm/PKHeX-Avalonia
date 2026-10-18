@@ -19,12 +19,21 @@ public partial class MainWindowViewModel
     /// <summary>Raised on the UI thread after <see cref="ShortcutBindings"/> was replaced.</summary>
     public event EventHandler? ShortcutBindingsChanged;
 
-    // The shortcut editor dialog is not wired yet; until it is, the command stays unavailable so the
-    // Help menu entry and any assigned shortcut do nothing visible.
-    private bool CanOpenKeyboardShortcuts => false;
+    /// <summary>
+    /// Opens the shortcut editor (Help menu, the Settings section, or its own shortcut). Saving there
+    /// raises <see cref="KeyboardShortcutService.Changed"/>, which rebinds the shortcuts live.
+    /// </summary>
+    [RelayCommand]
+    private async Task OpenKeyboardShortcutsAsync()
+    {
+        // One editor at a time: it owns KeyboardShortcutService.IsEditorOpen until it closes.
+        if (_shortcutService.IsEditorOpen)
+            return;
 
-    [RelayCommand(CanExecute = nameof(CanOpenKeyboardShortcuts))]
-    private Task OpenKeyboardShortcutsAsync() => Task.CompletedTask;
+        await _windowService.ShowDialogAsync(
+            new KeyboardShortcutsViewModel(Shortcuts, _shortcutService, _dialogService),
+            T("Dialog_KeyboardShortcuts"));
+    }
 
     /// <summary>
     /// Builds the action catalog over the shell commands and the capability registry, then resolves

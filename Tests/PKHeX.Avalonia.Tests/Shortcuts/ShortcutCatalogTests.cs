@@ -5,7 +5,6 @@ using System.Text.Json;
 using System.Windows.Input;
 using Avalonia.Headless.XUnit;
 using Microsoft.Extensions.DependencyInjection;
-using Moq;
 using PKHeX.Application.Shortcuts;
 using PKHeX.Avalonia.Input;
 using PKHeX.Avalonia.Tests.Harness;
@@ -421,7 +420,7 @@ public sealed class ShortcutCatalogTests
         Assert.False(vm.Shortcuts.TabEvents.CanInvoke());
         Assert.False(vm.Shortcuts.TabGifts.CanInvoke());
         Assert.True(vm.Shortcuts.TabTrainer.CanInvoke());
-        Assert.False(vm.Shortcuts.OpenKeyboardShortcuts.CanInvoke());
+        Assert.True(vm.Shortcuts.OpenKeyboardShortcuts.CanInvoke());
 
         // While the shortcut editor records keys, no shortcut runs.
         service.IsEditorOpen = true;
@@ -526,32 +525,8 @@ public sealed class ShortcutCatalogTests
         AppSettings? settings = null,
         FakeSettingsStore? store = null,
         KeyboardShortcutService? service = null,
-        LanguageService? languageService = null)
-    {
-        settings ??= new AppSettings();
-        store ??= new FakeSettingsStore();
-        return new MainWindowViewModel(
-            new Mock<ISaveFileGateway>().Object,
-            new Mock<IDialogService>().Object,
-            new Mock<IWindowService>().Object,
-            new Mock<ISpriteRenderer>().Object,
-            new Mock<ISlotService>().Object,
-            new Mock<IClipboardService>().Object,
-            new Mock<IQrCodeService>().Object,
-            UpdateTestDoubles.Coordinator(),
-            new Mock<ISaveBackupService>().Object,
-            settings,
-            store,
-            new Mock<IThemeService>().Object,
-            new Mock<IUiDensityService>().Object,
-            new UndoRedoService(),
-            languageService ?? new LanguageService(),
-            new Mock<IAutoLegalityService>().Object,
-            new Mock<PKHeX.Application.Abstractions.LiveHex.ILiveHexService>().Object,
-            new Mock<ILivingDexService>().Object,
-            new Mock<PKHeX.Application.Abstractions.GiftRecords.IGiftRecordProvider>().Object,
-            keyboardShortcuts: service);
-    }
+        LanguageService? languageService = null) =>
+        ShortcutTestViewModels.CreateMainViewModel(settings, store, service, languageService);
 
     private static HashSet<string> LoadEnglishKeys()
     {

@@ -199,6 +199,48 @@ public sealed class KeyboardShortcutShellTests
     }
 
     // ---------------------------------------------------------------------
+    // 9g. Saving in the shortcut editor rebinds the main window live. The test window service
+    //     returns from ShowDialogAsync at once, so the rebind must come from the service's event,
+    //     not from code that runs after the dialog closes.
+    // ---------------------------------------------------------------------
+
+    [AvaloniaFact]
+    public async Task EditorSave_RebindsTheMainWindowLive()
+    {
+        using var app = new HeadlessAppFixture();
+        app.LoadSaveInstance(new SAV6XY());
+        var service = app.Services.GetRequiredService<KeyboardShortcutService>();
+        var store = Assert.IsType<FakeSettingsStore>(app.Services.GetRequiredService<ISettingsStore>());
+
+        await app.ViewModel.OpenKeyboardShortcutsCommand.ExecuteAsync(null);
+        var (viewModel, title) = app.Windows.ShownDialogs.Last();
+        var editor = Assert.IsType<KeyboardShortcutsViewModel>(viewModel);
+        Assert.Equal(LocalizedStrings.Instance["Dialog_KeyboardShortcuts"], title);
+        Assert.True(service.IsEditorOpen);
+
+        var encounter = Assert.Single(editor.Rows, row => row.ActionId == "OpenEncounterDatabase");
+        encounter.RecordCommand.Execute(new ShortcutChord(ShortcutModifiers.Control | ShortcutModifiers.Shift, "N"));
+        editor.SaveCommand.Execute(null);
+        app.Pump();
+
+        Assert.Equal("Primary+Shift+N", store.Saved!.KeyboardShortcuts["OpenEncounterDatabase"]);
+        Assert.False(service.IsEditorOpen);
+
+        app.Focus(app.Find<BoxViewer>()!);
+        app.PressKey(PhysicalKey.N, RawInputModifiers.Control);
+        Assert.Empty(app.Windows.ShownTools);
+        app.PressKey(PhysicalKey.N, RawInputModifiers.Control | RawInputModifiers.Shift);
+        Assert.IsType<EncounterDatabaseViewModel>(Assert.Single(app.Windows.ShownTools).ViewModel);
+
+        AssertBindingsMatchViewModel(app);
+        Assert.Single(app.Window.KeyBindings, binding => new KeyGesture(Key.Escape).Equals(binding.Gesture));
+
+        // The menus follow too, and the Help entry that opened the editor is available.
+        Assert.Equal(new KeyGesture(Key.N, KeyModifiers.Control | KeyModifiers.Shift), OpenEncounterMenuItem(app).InputGesture);
+        Assert.True(OpenMenuItem(app, "Menu_Help", "Menu_Help_KeyboardShortcuts").IsEffectivelyEnabled);
+    }
+
+    // ---------------------------------------------------------------------
     // 9h. Menus and the launcher show the resolved shortcuts and follow a rebind.
     // ---------------------------------------------------------------------
 

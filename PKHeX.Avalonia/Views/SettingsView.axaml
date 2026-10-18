@@ -68,6 +68,15 @@
                         </Grid>
                     </StackPanel>
                 </Border>
+<Border x:Name="KeyboardShortcutsSection" BorderBrush="{DynamicResource ThemeBorderMutedBrush}" BorderThickness="0,0,0,1" Padding="0,0,0,16" IsVisible="{Binding CanOpenKeyboardShortcuts}">
+                    <StackPanel Spacing="{DynamicResource UiDensityViewStackSpacing}">
+                        <TextBlock Text="{loc:Loc Settings_KeyboardShortcuts}" FontSize="13" FontWeight="SemiBold" />
+                        <Grid ColumnDefinitions="*,150" ColumnSpacing="12">
+                            <StackPanel VerticalAlignment="Center" Spacing="2"><TextBlock Text="{loc:Loc Settings_KeyboardShortcuts_Desc}" FontSize="11" FontWeight="Normal" TextWrapping="Wrap" VerticalAlignment="Center" /></StackPanel>
+                            <Button x:Name="OpenKeyboardShortcutsButton" Grid.Column="1" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" FontSize="11" Content="{loc:Loc Settings_KeyboardShortcuts_Open}" Command="{Binding OpenKeyboardShortcutsCommand}" AutomationProperties.Name="{loc:Loc Settings_KeyboardShortcuts}" ToolTip.Tip="{loc:Loc Settings_KeyboardShortcuts_Desc}" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
 <Border BorderBrush="{DynamicResource ThemeBorderMutedBrush}" BorderThickness="0,0,0,1" Padding="0,0,0,16">
                     <StackPanel Spacing="{DynamicResource UiDensityViewStackSpacing}">
                         <TextBlock Text="{loc:Loc Settings_Sprites}" FontSize="13" FontWeight="SemiBold" />

@@ -18,6 +18,7 @@ public partial class SettingsViewModel : ViewModelBase, ICloseableDialog
     private readonly LanguageService _languageService;
     private readonly UpdateCheckCoordinator _updateCoordinator;
     private readonly ILinuxDesktopIntegrationService? _linuxDesktopIntegration;
+    private readonly Func<Task>? _openKeyboardShortcuts;
     private bool _isLoading;
 
     public Action? CloseRequested { get; set; }
@@ -32,7 +33,8 @@ public partial class SettingsViewModel : ViewModelBase, ICloseableDialog
         IUiDensityService uiDensityService,
         LanguageService languageService,
         UpdateCheckCoordinator updateCoordinator,
-        ILinuxDesktopIntegrationService? linuxDesktopIntegration = null)
+        ILinuxDesktopIntegrationService? linuxDesktopIntegration = null,
+        Func<Task>? openKeyboardShortcuts = null)
     {
         _settings = settings;
         _settingsStore = settingsStore;
@@ -41,6 +43,7 @@ public partial class SettingsViewModel : ViewModelBase, ICloseableDialog
         _languageService = languageService;
         _updateCoordinator = updateCoordinator;
         _linuxDesktopIntegration = linuxDesktopIntegration;
+        _openKeyboardShortcuts = openKeyboardShortcuts;
         Load();
         RefreshLinuxIntegrationState();
     }
@@ -70,6 +73,20 @@ public partial class SettingsViewModel : ViewModelBase, ICloseableDialog
             IsCheckingForUpdates = false;
         }
     }
+
+    // ---------------------------------------------------------------------------------------------
+    // Keyboard shortcuts (the section is hidden when no editor was provided)
+    // ---------------------------------------------------------------------------------------------
+
+    /// <summary>Whether the keyboard shortcut section is shown: the host supplied the editor.</summary>
+    public bool CanOpenKeyboardShortcuts => _openKeyboardShortcuts is not null;
+
+    /// <summary>
+    /// Opens the shortcut editor over this dialog. Shortcuts are saved by the editor itself, so the
+    /// staged settings on this screen are neither saved nor discarded by it.
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(CanOpenKeyboardShortcuts))]
+    private Task OpenKeyboardShortcutsAsync() => _openKeyboardShortcuts?.Invoke() ?? Task.CompletedTask;
 
     // ---------------------------------------------------------------------------------------------
     // Linux desktop integration (AppImage only — the section is hidden everywhere else)
