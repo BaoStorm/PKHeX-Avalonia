@@ -112,7 +112,8 @@ public partial class MainWindowViewModel
     private async Task OpenBoxManipAsync()
     {
         if (CurrentSave is null) return;
-        var vm = new BoxManipViewModel(CurrentSave, _dialogService, () => BoxViewer?.RefreshCurrentBox());
+        var vm = new BoxManipViewModel(CurrentSave, _dialogService, () => BoxViewer?.RefreshCurrentBox(),
+            BoxViewer?.CurrentBox ?? CurrentSave.CurrentBox, _undoRedo);
         await _windowService.ShowDialogAsync(vm, T("Dialog_BoxManipulation"));
     }
 

@@ -4,71 +4,101 @@
              xmlns:loc="using:PKHeX.Avalonia.Localization"
              x:Class="PKHeX.Avalonia.Views.BoxManipView"
              x:DataType="vm:BoxManipViewModel"
-             Width="500" Height="450">
-    <DockPanel Margin="16">
-        <TextBlock DockPanel.Dock="Top" Text="{loc:Loc BoxManipView_Title}" FontSize="20" FontWeight="SemiBold" Margin="0,0,0,12" />
+             Width="680" Height="500" MinWidth="460" MinHeight="380">
+    <UserControl.Styles>
+        <Style Selector="TextBlock.status-error">
+            <Setter Property="Foreground" Value="{DynamicResource ThemeErrorBrush}" />
+        </Style>
+        <Style Selector="TextBlock.destructive-warning">
+            <Setter Property="Foreground" Value="{DynamicResource ThemeErrorBrush}" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+        <Style Selector="Button.destructive">
+            <Setter Property="Foreground" Value="{DynamicResource ThemeErrorBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource ThemeErrorBrush}" />
+        </Style>
+    </UserControl.Styles>
 
-        <!-- Scope Selection -->
-        <Border DockPanel.Dock="Top" Classes="editor-section-padded" Margin="0,0,0,12">
-            <StackPanel Spacing="8">
-                <TextBlock Text="{loc:Loc BoxManipView_ScopeHeader}" FontWeight="SemiBold" />
-                <StackPanel Orientation="Horizontal" Spacing="16">
+    <Border Classes="view-container">
+        <DockPanel>
+            <TextBlock DockPanel.Dock="Top" Text="{loc:Loc BoxManipView_Title}" FontSize="20" FontWeight="SemiBold" Margin="0,0,0,8" />
+
+            <Border DockPanel.Dock="Top" Classes="editor-section-padded" Margin="0,0,0,8">
+                <WrapPanel Orientation="Horizontal">
+                    <TextBlock Text="{loc:Loc BoxManipView_ScopeHeader}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,16,0" />
+                    <RadioButton Content="{loc:Loc BoxManipView_CurrentBoxOnlyOption}" IsChecked="{Binding !ApplyToAllBoxes}"
+                                 GroupName="Scope" Margin="0,0,8,0" />
+                    <NumericUpDown Value="{Binding CurrentBoxNumber}" Minimum="1" Maximum="{Binding BoxCount}"
+                                   FormatString="0" Width="110" IsEnabled="{Binding !ApplyToAllBoxes}"
+                                   AutomationProperties.Name="{loc:Loc BoxManip_BoxNumber}" Margin="0,0,16,0" />
                     <RadioButton Content="{loc:Loc BoxManipView_AllBoxesOption}" IsChecked="{Binding ApplyToAllBoxes}" GroupName="Scope" />
-                    <RadioButton Content="{loc:Loc BoxManipView_CurrentBoxOnlyOption}" IsChecked="{Binding !ApplyToAllBoxes}" GroupName="Scope" />
-                </StackPanel>
-            </StackPanel>
-        </Border>
+                </WrapPanel>
+            </Border>
 
-        <!-- Tabs for Sort / Clear / Modify -->
-        <TabControl>
-            <TabItem Header="{loc:Loc BoxManipView_SortTab}">
-                <ScrollViewer>
-                    <ItemsControl ItemsSource="{Binding SortActions}" Margin="8">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate DataType="vm:BoxManipItemViewModel">
-                                <Button Content="{Binding Name}"
-                                        Command="{Binding $parent[UserControl].((vm:BoxManipViewModel)DataContext).ExecuteCommand}"
-                                        CommandParameter="{Binding}"
-                                        HorizontalAlignment="Stretch"
-                                        Margin="0,0,0,4"
-                                        Padding="8,6" />
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </ScrollViewer>
-            </TabItem>
-            <TabItem Header="{loc:Loc BoxManipView_ClearTab}">
-                <ScrollViewer>
-                    <ItemsControl ItemsSource="{Binding ClearActions}" Margin="8">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate DataType="vm:BoxManipItemViewModel">
-                                <Button Content="{Binding Name}"
-                                        Command="{Binding $parent[UserControl].((vm:BoxManipViewModel)DataContext).ExecuteCommand}"
-                                        CommandParameter="{Binding}"
-                                        HorizontalAlignment="Stretch"
-                                        Margin="0,0,0,4"
-                                        Padding="8,6" />
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </ScrollViewer>
-            </TabItem>
-            <TabItem Header="{loc:Loc BoxManipView_ModifyTab}">
-                <ScrollViewer>
-                    <ItemsControl ItemsSource="{Binding ModifyActions}" Margin="8">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate DataType="vm:BoxManipItemViewModel">
-                                <Button Content="{Binding Name}" 
-                                        Command="{Binding $parent[UserControl].((vm:BoxManipViewModel)DataContext).ExecuteCommand}" 
-                                        CommandParameter="{Binding}"
-                                        HorizontalAlignment="Stretch" 
-                                        Margin="0,0,0,4" 
-                                        Padding="8,6" />
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </ScrollViewer>
-            </TabItem>
-        </TabControl>
-    </DockPanel>
+            <Grid ColumnDefinitions="*,12,*">
+                <TabControl>
+                    <TabItem Header="{loc:Loc BoxManipView_SortTab}">
+                        <ListBox ItemsSource="{Binding SortActions}" SelectedItem="{Binding SelectedSort}"
+                                 AutomationProperties.Name="{loc:Loc BoxManipView_SortTab}">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate x:DataType="vm:BoxManipItemViewModel">
+                                    <TextBlock Text="{Binding Name}" ToolTip.Tip="{Binding Description}"
+                                               AutomationProperties.HelpText="{Binding Description}" />
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </TabItem>
+                    <TabItem Header="{loc:Loc BoxManipView_ModifyTab}">
+                        <ListBox ItemsSource="{Binding ModifyActions}" SelectedItem="{Binding SelectedModify}"
+                                 AutomationProperties.Name="{loc:Loc BoxManipView_ModifyTab}">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate x:DataType="vm:BoxManipItemViewModel">
+                                    <TextBlock Text="{Binding Name}" ToolTip.Tip="{Binding Description}"
+                                               AutomationProperties.HelpText="{Binding Description}" />
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </TabItem>
+                    <TabItem Header="{loc:Loc BoxManipView_ClearTab}">
+                        <ListBox ItemsSource="{Binding ClearActions}" SelectedItem="{Binding SelectedClear}"
+                                 AutomationProperties.Name="{loc:Loc BoxManipView_ClearTab}">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate x:DataType="vm:BoxManipItemViewModel">
+                                    <TextBlock Text="{Binding Name}" Classes="destructive-warning" ToolTip.Tip="{Binding Description}"
+                                               AutomationProperties.HelpText="{Binding Description}" />
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </TabItem>
+                </TabControl>
+
+                <Border Grid.Column="2" Classes="editor-section-padded">
+                    <DockPanel>
+                        <StackPanel DockPanel.Dock="Bottom" Spacing="6" Margin="0,8,0,0">
+                            <TextBlock Text="{Binding StatusText}" IsVisible="{Binding HasStatus}" TextWrapping="Wrap"
+                                       Classes.status-error="{Binding IsStatusError}" />
+                            <Button Content="{loc:Loc BoxManip_Apply}" Command="{Binding ApplyCommand}"
+                                    HorizontalAlignment="Right" Classes.accent="{Binding !IsDestructive}"
+                                    Classes.destructive="{Binding IsDestructive}"
+                                    AutomationProperties.Name="{Binding ApplyAutomationName}" />
+                        </StackPanel>
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <StackPanel Spacing="6">
+                                <TextBlock Text="{loc:Loc BoxManip_ReviewHeader}" FontWeight="SemiBold" />
+                                <TextBlock Text="{Binding SelectedName}" FontSize="16" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                <TextBlock Text="{Binding SelectedCategoryText}" Classes="form-hint" IsVisible="{Binding HasSelection}" />
+                                <TextBlock Text="{Binding SelectedDescription}" TextWrapping="Wrap" />
+                                <TextBlock Text="{Binding ScopeText}" TextWrapping="Wrap" IsVisible="{Binding HasSelection}" />
+                                <TextBlock Text="{Binding ImpactText}" TextWrapping="Wrap" IsVisible="{Binding HasSelection}" />
+                                <TextBlock Text="{loc:Loc BoxManip_DestructiveWarning}" Classes="destructive-warning"
+                                           TextWrapping="Wrap" IsVisible="{Binding IsDestructive}" />
+                                <TextBlock Text="{loc:Loc BoxManip_UndoHint}" Classes="form-hint" TextWrapping="Wrap"
+                                           IsVisible="{Binding CanUndo}" />
+                            </StackPanel>
+                        </ScrollViewer>
+                    </DockPanel>
+                </Border>
+            </Grid>
+        </DockPanel>
+    </Border>
 </UserControl>
