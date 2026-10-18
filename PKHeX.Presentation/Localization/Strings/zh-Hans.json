@@ -3717,5 +3717,7 @@
   "BoxManip_Action_ModifyRemoveItem": "移除携带物品",
   "BoxManip_Desc_ModifyRemoveItem": "移除所有宝可梦携带的物品。",
   "BoxManip_Action_ModifyHeal": "回复",
-  "BoxManip_Desc_ModifyHeal": "恢复HP、PP和状态。"
+  "BoxManip_Desc_ModifyHeal": "恢复HP、PP和状态。",
+  "Metadata_CanGigantamax": "超极巨化",
+  "Metadata_DynamaxLevel": "极巨化等级"
 }

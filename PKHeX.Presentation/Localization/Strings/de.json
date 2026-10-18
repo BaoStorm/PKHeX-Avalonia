@@ -3717,5 +3717,7 @@
   "BoxManip_Action_ModifyRemoveItem": "Getragene Items entfernen",
   "BoxManip_Desc_ModifyRemoveItem": "Entfernt das getragene Item von jedem Pokémon.",
   "BoxManip_Action_ModifyHeal": "Heilen",
-  "BoxManip_Desc_ModifyHeal": "Stellt KP, AP und Status wieder her."
+  "BoxManip_Desc_ModifyHeal": "Stellt KP, AP und Status wieder her.",
+  "Metadata_CanGigantamax": "Gigadynamax-Faktor",
+  "Metadata_DynamaxLevel": "Dynamax-Level"
 }

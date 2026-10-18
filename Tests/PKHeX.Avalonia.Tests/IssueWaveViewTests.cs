@@ -93,6 +93,32 @@ public class IssueWaveViewTests
     }
 
     [AvaloniaFact]
+    public void GigantamaxAndDynamaxControlsAreRealizedInStatsTabForSwordShield()
+    {
+        using var app = new HeadlessAppFixture();
+        app.LoadSaveInstance(new SAV8SWSH());
+        var editor = app.ViewModel.CurrentPokemonEditor!;
+        editor.LoadPKM(new PK8 { Species = 25, Version = GameVersion.SW, DynamaxLevel = 3 });
+        editor.SelectedEditorSection = 1; // Stats
+        app.Pump();
+        var loc = PKHeX.Presentation.Localization.LocalizedStrings.Instance;
+        var view = app.Window.GetVisualDescendants().OfType<PKHeX.Avalonia.Views.PokemonEditor>().Single();
+        var gmax = view.GetVisualDescendants().OfType<CheckBox>()
+            .Single(c => AutomationProperties.GetName(c) == loc["Metadata_CanGigantamax"]);
+        var dmax = view.GetVisualDescendants().OfType<NumericUpDown>()
+            .Single(n => AutomationProperties.GetName(n) == loc["Metadata_DynamaxLevel"]);
+        Assert.True(gmax.IsEffectivelyVisible);
+        Assert.True(dmax.IsEffectivelyVisible);
+        Assert.Equal(3m, dmax.Value);
+        gmax.IsChecked = true;
+        dmax.Value = 10;
+        app.Pump();
+        var prepared = (PK8)editor.PreparePKM();
+        Assert.True(prepared.CanGigantamax);
+        Assert.Equal(10, prepared.DynamaxLevel);
+    }
+
+    [AvaloniaFact]
     public void MetadataLanguageRefresh_PreservesSelectionsAndBytes()
     {
         using var app = new HeadlessAppFixture();

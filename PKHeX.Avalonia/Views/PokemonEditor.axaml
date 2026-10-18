@@ -362,6 +362,12 @@
                             </Grid>
                         </Border>
                             <CheckBox Content="{loc:Loc Metadata_IsAlpha}" IsVisible="{Binding HasAlpha}" IsChecked="{Binding IsAlpha}" AutomationProperties.Name="{loc:Loc Metadata_IsAlpha}" />
+                            <CheckBox Content="{loc:Loc Metadata_CanGigantamax}" IsVisible="{Binding HasGigantamax}" IsChecked="{Binding CanGigantamax}" AutomationProperties.Name="{loc:Loc Metadata_CanGigantamax}" />
+                            <StackPanel IsVisible="{Binding HasDynamaxLevel}" Spacing="4">
+                                <TextBlock Text="{loc:Loc Metadata_DynamaxLevel}" />
+                                <NumericUpDown Value="{Binding DynamaxLevel}" Minimum="0" Maximum="{Binding DynamaxLevelMaximum}" FormatString="0"
+                                               AutomationProperties.Name="{loc:Loc Metadata_DynamaxLevel}" />
+                            </StackPanel>
                             <StackPanel IsVisible="{Binding HasSizeScalars}" Spacing="4">
                                 <TextBlock Text="{loc:Loc Metadata_HeightScalar}" />
                                 <NumericUpDown Value="{Binding HeightScalar}" Minimum="0" Maximum="255" FormatString="0"

@@ -3717,5 +3717,7 @@
   "BoxManip_Action_ModifyRemoveItem": "移除攜帶道具",
   "BoxManip_Desc_ModifyRemoveItem": "移除所有寶可夢攜帶的道具。",
   "BoxManip_Action_ModifyHeal": "回復",
-  "BoxManip_Desc_ModifyHeal": "恢復HP、PP和狀態。"
+  "BoxManip_Desc_ModifyHeal": "恢復HP、PP和狀態。",
+  "Metadata_CanGigantamax": "超極巨化",
+  "Metadata_DynamaxLevel": "極巨化等級"
 }

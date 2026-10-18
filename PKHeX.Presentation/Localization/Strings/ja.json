@@ -3717,5 +3717,7 @@
   "BoxManip_Action_ModifyRemoveItem": "持ち物を外す",
   "BoxManip_Desc_ModifyRemoveItem": "すべてのポケモンの持ち物を外します。",
   "BoxManip_Action_ModifyHeal": "回復する",
-  "BoxManip_Desc_ModifyHeal": "HP、PP、状態を回復します。"
+  "BoxManip_Desc_ModifyHeal": "HP、PP、状態を回復します。",
+  "Metadata_CanGigantamax": "キョダイマックス",
+  "Metadata_DynamaxLevel": "ダイマックスレベル"
 }

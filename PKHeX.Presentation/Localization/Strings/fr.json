@@ -3717,5 +3717,7 @@
   "BoxManip_Action_ModifyRemoveItem": "Retirer les objets tenus",
   "BoxManip_Desc_ModifyRemoveItem": "Retire l’objet tenu de chaque Pokémon.",
   "BoxManip_Action_ModifyHeal": "Soigner",
-  "BoxManip_Desc_ModifyHeal": "Restaure les PV, les PP et le statut."
+  "BoxManip_Desc_ModifyHeal": "Restaure les PV, les PP et le statut.",
+  "Metadata_CanGigantamax": "Facteur Gigamax",
+  "Metadata_DynamaxLevel": "Niveau Dynamax"
 }

@@ -3717,5 +3717,7 @@
   "BoxManip_Action_ModifyRemoveItem": "Rimuovi strumenti tenuti",
   "BoxManip_Desc_ModifyRemoveItem": "Rimuove lo strumento tenuto da ogni Pokémon.",
   "BoxManip_Action_ModifyHeal": "Cura",
-  "BoxManip_Desc_ModifyHeal": "Ripristina PS, PP e stato."
+  "BoxManip_Desc_ModifyHeal": "Ripristina PS, PP e stato.",
+  "Metadata_CanGigantamax": "Fattore Gigamax",
+  "Metadata_DynamaxLevel": "Livello Dynamax"
 }

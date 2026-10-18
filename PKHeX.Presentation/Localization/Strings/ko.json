@@ -3717,5 +3717,7 @@
   "BoxManip_Action_ModifyRemoveItem": "지닌 물건 해제",
   "BoxManip_Desc_ModifyRemoveItem": "모든 포켓몬의 지닌 물건을 해제합니다.",
   "BoxManip_Action_ModifyHeal": "회복",
-  "BoxManip_Desc_ModifyHeal": "HP, PP, 상태를 회복합니다."
+  "BoxManip_Desc_ModifyHeal": "HP, PP, 상태를 회복합니다.",
+  "Metadata_CanGigantamax": "거다이맥스",
+  "Metadata_DynamaxLevel": "다이맥스 레벨"
 }
