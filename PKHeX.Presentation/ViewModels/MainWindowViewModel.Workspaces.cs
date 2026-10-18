@@ -301,6 +301,8 @@ public partial class MainWindowViewModel
 
         RegisterMenuCapability("Menu_Pokedex", OpenPokedexCommand, "Menu_Gen8");
         RegisterMenuCapability("Menu_Gen8_MaxRaidsSWSH", OpenRaidEditorCommand, "Menu_Gen8");
+        RegisterConditionalMenuCapability("Dialog_RaidEventImport", OpenRaidEventImportCommand,
+            "Menu_Gen8", () => CurrentSave is SAV8SWSH);
         RegisterMenuCapability("Menu_Gen8_FashionSWSH", OpenFashionCommand, "Menu_Gen8");
         RegisterMenuCapability("Menu_Gen8_TrainerCardSWSH", OpenTrainerCard8Command, "Menu_Gen8");
         RegisterMenuCapability("Menu_Gen8_MiscBDSP", OpenMisc8bCommand, "Menu_Gen8");
@@ -316,6 +318,8 @@ public partial class MainWindowViewModel
         RegisterMenuCapability("Menu_Pokedex", OpenPokedexCommand, "Menu_Gen9");
         RegisterMenuCapability("Menu_Gen9_TeraRaidsSV", OpenRaid9Command, "Menu_Gen9");
         RegisterMenuCapability("Menu_Gen9_SevenStarRaidsSV", OpenRaidSevenStar9Command, "Menu_Gen9");
+        RegisterConditionalMenuCapability("Dialog_RaidEventImport", OpenRaidEventImportCommand,
+            "Menu_Gen9", () => CurrentSave is SAV9SV);
         RegisterMenuCapability("Menu_Gen9_FashionSVZA", OpenFashion9Command, "Menu_Gen9");
         RegisterMenuCapability("Menu_Gen9_DonutPLZA", OpenDonutCommand, "Menu_Gen9");
 
