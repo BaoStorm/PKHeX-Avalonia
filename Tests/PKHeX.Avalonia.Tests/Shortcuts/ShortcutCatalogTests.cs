@@ -252,6 +252,12 @@ public sealed class ShortcutCatalogTests
         {
             var resolved = table[definition.Id];
             Assert.Null(resolved.Issue);
+            // A default must never hold Primary next to the literal modifier it stands for.
+            foreach (var flavor in new[] { ShortcutPlatformFlavor.Standard, ShortcutPlatformFlavor.Apple })
+            {
+                if (ShortcutChord.TryParse(definition.DefaultFor(flavor), out var portable))
+                    Assert.False(portable.IsAmbiguousOn(flavor), $"{definition.Id} default {portable} on {flavor}");
+            }
             Assert.Equal(resolved.Default, resolved.Effective);
             if (resolved.Default is { } chord)
             {

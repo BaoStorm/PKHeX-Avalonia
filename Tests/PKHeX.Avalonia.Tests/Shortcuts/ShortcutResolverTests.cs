@@ -149,6 +149,32 @@ public sealed class ShortcutResolverTests
     }
 
     [Fact]
+    public void PrimaryNextToItsOwnModifier_IsUnusable_AndSuppressesNoDefault()
+    {
+        // "Primary+Ctrl+N" is Cmd+Ctrl+N on macOS. On Windows/Linux Primary is Ctrl, so the chord
+        // would collapse into plain Ctrl+N and take the Encounter Database default.
+        var overrides = new Dictionary<string, string> { ["OpenMisc3"] = "Primary+Ctrl+N" };
+
+        var standard = Resolve(overrides);
+        var misc = standard["OpenMisc3"];
+        Assert.Null(misc.Effective);
+        Assert.Equal(ShortcutIssueKind.UnusableStored, misc.Issue!.Kind);
+        Assert.Equal("Primary+Ctrl+N", misc.Issue.Raw);
+        Assert.Equal(new ShortcutChord(Ctrl, "N"), standard["OpenEncounterDatabase"].Effective);
+        Assert.Null(standard["OpenEncounterDatabase"].Issue);
+
+        // On macOS it is a valid Ctrl+Cmd chord.
+        var apple = Resolve(overrides, FakeShortcutPlatform.Apple());
+        Assert.Equal(new ShortcutChord(Ctrl | Meta, "N"), apple["OpenMisc3"].Effective);
+        Assert.Equal(ShortcutSource.User, apple["OpenMisc3"].Source);
+
+        // The same rule on macOS, where Primary is Cmd.
+        var ambiguousOnApple = Resolve(new Dictionary<string, string> { ["OpenMisc3"] = "Primary+Meta+N" }, FakeShortcutPlatform.Apple());
+        Assert.Equal(ShortcutIssueKind.UnusableStored, ambiguousOnApple["OpenMisc3"].Issue!.Kind);
+        Assert.Equal(new ShortcutChord(Meta, "N"), ambiguousOnApple["OpenEncounterDatabase"].Effective);
+    }
+
+    [Fact]
     public void TextRoleOverride_MayUseItsTextGesture()
     {
         var table = Resolve(new Dictionary<string, string> { ["Redo"] = "Primary+Shift+Z" });

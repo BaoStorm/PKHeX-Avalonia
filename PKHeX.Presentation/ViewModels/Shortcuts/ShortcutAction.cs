@@ -19,7 +19,7 @@ public sealed class ShortcutAction : ObservableObject
 
     private ShortcutAction(
         ShortcutDefinition definition,
-        string titleKey,
+        IReadOnlyList<string> titleKeys,
         IReadOnlyList<string> categoryKeys,
         ICommand command,
         object? commandParameter,
@@ -27,7 +27,8 @@ public sealed class ShortcutAction : ObservableObject
         Func<bool> canInvoke)
     {
         Definition = definition;
-        TitleKey = titleKey;
+        TitleKey = titleKeys[0];
+        TitleKeys = titleKeys;
         CategoryKeys = categoryKeys;
         Command = command;
         CommandParameter = commandParameter;
@@ -41,6 +42,13 @@ public sealed class ShortcutAction : ObservableObject
     /// <summary>Localization key of the title (a menu key, so it may carry an access-key marker).</summary>
     public string TitleKey { get; }
 
+    /// <summary>
+    /// Localization keys of every menu entry name the action has, <see cref="TitleKey"/> first. A
+    /// registry command can appear under different names (Box Layout in Save Editors, Block Layout
+    /// in Gen 4).
+    /// </summary>
+    public IReadOnlyList<string> TitleKeys { get; }
+
     /// <summary>Localization keys of the menus the action appears in.</summary>
     public IReadOnlyList<string> CategoryKeys { get; }
 
@@ -49,6 +57,12 @@ public sealed class ShortcutAction : ObservableObject
 
     /// <summary>Localized title without the access-key marker (de <c>"Ö_ffnen..."</c> shows <c>"Öffnen..."</c>).</summary>
     public string Title => AccessKeyText.Strip(LocalizedStrings.Instance[TitleKey]);
+
+    /// <summary>Every localized name of the action without access-key markers, <see cref="Title"/> first.</summary>
+    public IReadOnlyList<string> Titles => TitleKeys
+        .Select(key => AccessKeyText.Strip(LocalizedStrings.Instance[key]))
+        .Distinct(StringComparer.Ordinal)
+        .ToArray();
 
     /// <summary>Localized menu names the action appears in, comma-separated.</summary>
     public string CategoryTitle => string.Join(", ", CategoryKeys
@@ -102,14 +116,14 @@ public sealed class ShortcutAction : ObservableObject
         Func<bool>? isApplicable = null)
     {
         ArgumentNullException.ThrowIfNull(command);
-        return new ShortcutAction(definition, titleKey, [categoryKey], command, commandParameter, [],
+        return new ShortcutAction(definition, [titleKey], [categoryKey], command, commandParameter, [],
             () => command.CanExecute(commandParameter) && (isApplicable?.Invoke() ?? true));
     }
 
     /// <summary>
     /// A registry action over every descriptor that shares one command. It can run when any
     /// descriptor can (the Pokédex is reachable from whichever generation group matches the save);
-    /// the title comes from the first descriptor and the categories from all of them.
+    /// the title comes from the first descriptor, and the other names and the categories from all of them.
     /// </summary>
     internal static ShortcutAction ForRegistry(ShortcutDefinition definition, IReadOnlyList<ToolLauncherItem> descriptors)
     {
@@ -132,7 +146,12 @@ public sealed class ShortcutAction : ObservableObject
             .Distinct(StringComparer.Ordinal)
             .ToArray();
 
-        return new ShortcutAction(definition, descriptors[0].TitleKey, categories, command, null, descriptors,
+        var titleKeys = descriptors
+            .Select(descriptor => descriptor.TitleKey)
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+
+        return new ShortcutAction(definition, titleKeys, categories, command, null, descriptors,
             () => descriptors.Any(descriptor => descriptor.CanInvoke()));
     }
 
@@ -165,6 +184,7 @@ public sealed class ShortcutAction : ObservableObject
     internal void RefreshLocalization()
     {
         OnPropertyChanged(nameof(Title));
+        OnPropertyChanged(nameof(Titles));
         OnPropertyChanged(nameof(CategoryTitle));
     }
 }

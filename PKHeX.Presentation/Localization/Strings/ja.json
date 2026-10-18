@@ -3763,7 +3763,7 @@
   "Shortcuts_CustomizedCount": "{0} 件変更済み",
   "Shortcuts_None": "なし",
   "Shortcuts_Recording": "キーを押してください...",
-  "Shortcuts_RecorderName": "{0} のショートカット",
+  "Shortcuts_RecorderName": "{0} のショートカット: {1}",
   "Shortcuts_RecorderHelp": "Enter キーを押してから新しいキーを押します。Esc でキャンセル、Backspace でショートカットを削除します。",
   "Shortcuts_Default": "既定: {0}",
   "Shortcuts_ClearFor": "{0}: ショートカットを削除",
@@ -3773,7 +3773,7 @@
   "Shortcuts_Conflict": "{0} は既に {1} で使用されています。",
   "Shortcuts_Reassign": "こちらで使用",
   "Shortcuts_Moved": "ショートカットを {0} に移動しました。",
-  "Shortcuts_Error_UnsupportedKey": "このキーは使用できません。英字、数字、または F1～F12 を使用してください。",
+  "Shortcuts_Error_UnsupportedKey": "このキーは使用できません。英字、キーボード上部の数字キー、または F1～F12 を使用してください。",
   "Shortcuts_Error_NeedsModifier": "このキーに {0} を追加してください。",
   "Shortcuts_Error_AltGr": "Ctrl+Alt (AltGr) は多くのキーボードで文字の入力に使われます。別の組み合わせを使用してください。",
   "Shortcuts_Error_Reserved": "{0} は「{1}」用に予約されています。",
@@ -3786,5 +3786,14 @@
   "Shortcuts_Issue_DuplicateStored": "{0} は {1} にも割り当てられているため、どちらの操作でも使用されません。",
   "Settings_KeyboardShortcuts": "キーボードショートカット",
   "Settings_KeyboardShortcuts_Desc": "よく使う操作やツールにキーを割り当てます。",
-  "Settings_KeyboardShortcuts_Open": "カスタマイズ..."
+  "Settings_KeyboardShortcuts_Open": "カスタマイズ...",
+  "Shortcuts_TitleWithMenu": "{0}（{1}）",
+  "Shortcuts_ReassignFor": "こちらで使用: {0}",
+  "Shortcuts_Assigned": "ショートカットを {0} に設定しました。",
+  "Shortcuts_Removed": "ショートカットを削除しました。",
+  "Shortcuts_Issue_InvalidStored_NoDefault": "保存されたショートカット「{0}」は使用できません。この操作にはショートカットがありません。",
+  "Shortcuts_Issue_DefaultFree": "既定の {0} は再び使用できます。使用するには既定に戻してください。",
+  "Shortcuts_Issue_UsedBy": "{0} は現在 {1} で使用されています。",
+  "Shortcuts_Issue_Free": "{0} は再び使用できます。ここで使用するには、もう一度割り当ててください。",
+  "Settings_KeyboardShortcuts_OpenName": "キーボードショートカットをカスタマイズ"
 }

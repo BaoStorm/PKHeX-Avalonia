@@ -44,8 +44,9 @@
         </Style>
     </Window.Styles>
 
-    <!-- Configurable shortcuts are added from code by KeyboardShortcutBinder (issue #224); only the
-         fixed Escape binding that closes the tool launcher is declared here. -->
+    <!-- Configurable shortcuts run from KeyboardShortcutBinder (issue #224), which matches them in a
+         tunnelling KeyDown handler on the window's content so Alt chords do not open the menu bar.
+         Only the fixed Escape binding that closes the tool launcher is declared here. -->
     <Window.KeyBindings>
         <KeyBinding Gesture="Escape" Command="{Binding CloseToolLauncherCommand}" />
     </Window.KeyBindings>

@@ -3,8 +3,10 @@ using System.IO;
 using System.Linq;
 using Avalonia.Automation;
 using Avalonia.Controls;
+using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.VisualTree;
 using Microsoft.Extensions.DependencyInjection;
 using PKHeX.Application.Shortcuts;
@@ -19,8 +21,8 @@ namespace PKHeX.Avalonia.Tests.Shortcuts;
 
 /// <summary>
 /// Main-window keyboard shortcuts pressed through the composed headless app (issue #224): the real
-/// key routing (window <see cref="KeyBinding"/>s run before the focused control) reaches the bound
-/// view model actions.
+/// key routing (the binder's tunnelling key handler on the window runs before the focused control)
+/// reaches the bound view model actions.
 /// </summary>
 public sealed class KeyboardShortcutShellTests
 {
@@ -198,6 +200,133 @@ public sealed class KeyboardShortcutShellTests
         Assert.Equal(25, box.Slots[1].Species);
     }
 
+    [AvaloniaFact]
+    public void UndoOnAChordWithoutATextMeaning_RunsFromATextBox()
+    {
+        // Upstream PKHeX's Ctrl+U: a text box has no Ctrl+U gesture, so yielding to it would leave
+        // the key doing nothing.
+        var settings = new AppSettings();
+        settings.KeyboardShortcuts[ShortcutActionId.Undo] = "Primary+U";
+        using var app = new HeadlessAppFixture(services => services.AddSingleton(settings));
+        var box = MoveSlotZeroToSlotOne(app);
+        var nickname = app.FindByName<TextBox>("NicknameField")!;
+        app.Focus(nickname);
+
+        app.PressKey(PhysicalKey.U, RawInputModifiers.Control);
+
+        Assert.Equal(25, box.Slots[0].Species);
+        Assert.Equal(0, box.Slots[1].Species);
+
+        // Ctrl+Y is still the text box's own redo gesture, so it stays with the text box.
+        app.PressKey(PhysicalKey.Y, RawInputModifiers.Control);
+        Assert.Equal(0, box.Slots[1].Species);
+    }
+
+    [AvaloniaFact]
+    public void PrimaryZ_UndoesSlotChanges_FromAReadOnlyTextBox()
+    {
+        using var app = new HeadlessAppFixture();
+        var box = MoveSlotZeroToSlotOne(app);
+        var nickname = app.FindByName<TextBox>("NicknameField")!;
+        nickname.IsReadOnly = true;
+        app.Focus(nickname);
+
+        // A read-only text box has no text to undo, so the application Undo runs.
+        app.PressKey(PhysicalKey.Z, RawInputModifiers.Control);
+
+        Assert.Equal(25, box.Slots[0].Species);
+        Assert.Equal(0, box.Slots[1].Species);
+    }
+
+    // ---------------------------------------------------------------------
+    // Alt chords: the access-key handler must see the chord, or releasing Alt opens the menu bar.
+    // ---------------------------------------------------------------------
+
+    [AvaloniaFact]
+    public void AltChord_RunsWithoutOpeningTheMenuBar()
+    {
+        var settings = new AppSettings();
+        settings.KeyboardShortcuts[ShortcutActionId.WorkspaceSave] = "Alt+F5";
+        settings.KeyboardShortcuts[ShortcutActionId.WorkspacePokemon] = "Alt+F6";
+        using var app = new HeadlessAppFixture(services => services.AddSingleton(settings));
+        app.LoadSaveInstance(new SAV6XY());
+        var menu = app.Find<Menu>();
+        Assert.NotNull(menu);
+
+        // Control case: Alt pressed and released alone opens the menu bar, so the check below means something.
+        app.Focus(app.Find<BoxViewer>()!);
+        app.Window.KeyPressQwerty(PhysicalKey.AltLeft, RawInputModifiers.Alt);
+        app.Window.KeyReleaseQwerty(PhysicalKey.AltLeft, RawInputModifiers.None);
+        app.Pump();
+        Assert.True(menu!.IsOpen);
+        menu.Close();
+        app.Pump();
+        Assert.False(menu.IsOpen);
+
+        app.Focus(app.Find<BoxViewer>()!);
+        Assert.Equal(MainWorkspace.Pokemon, app.ViewModel.ActiveWorkspace);
+        app.Window.KeyPressQwerty(PhysicalKey.AltLeft, RawInputModifiers.Alt);
+        app.Window.KeyPressQwerty(PhysicalKey.F5, RawInputModifiers.Alt);
+        app.Window.KeyReleaseQwerty(PhysicalKey.F5, RawInputModifiers.Alt);
+        app.Window.KeyReleaseQwerty(PhysicalKey.AltLeft, RawInputModifiers.None);
+        app.Pump();
+
+        Assert.Equal(MainWorkspace.Save, app.ViewModel.ActiveWorkspace);
+        Assert.False(menu.IsOpen);
+
+        // The same with no focused element, when the key is raised on the window itself.
+        Assert.Null(app.Window.FocusManager!.GetFocusedElement());
+        app.Window.KeyPressQwerty(PhysicalKey.AltLeft, RawInputModifiers.Alt);
+        app.Window.KeyPressQwerty(PhysicalKey.F6, RawInputModifiers.Alt);
+        app.Window.KeyReleaseQwerty(PhysicalKey.F6, RawInputModifiers.Alt);
+        app.Window.KeyReleaseQwerty(PhysicalKey.AltLeft, RawInputModifiers.None);
+        app.Pump();
+
+        Assert.Equal(MainWorkspace.Pokemon, app.ViewModel.ActiveWorkspace);
+        Assert.False(menu.IsOpen);
+    }
+
+    [AvaloniaFact]
+    public void Shortcut_RunsWithoutAFocusedElement()
+    {
+        using var app = new HeadlessAppFixture();
+        app.LoadSaveInstance(new SAV6XY());
+        app.Focus(app.Find<BoxViewer>()!);
+        app.PressKey(PhysicalKey.Digit2, RawInputModifiers.Control);
+        Assert.Equal(MainWorkspace.Save, app.ViewModel.ActiveWorkspace);
+
+        // The workspace switch removed the focused control: the key now comes from the window itself.
+        Assert.Null(app.Window.FocusManager!.GetFocusedElement());
+        app.PressKey(PhysicalKey.K, RawInputModifiers.Control);
+        Assert.True(app.ViewModel.IsToolLauncherOpen);
+    }
+
+    [AvaloniaFact]
+    public void Shortcut_RunsBeforeTheFocusedControlsOwnKeyHandlers()
+    {
+        using var app = new HeadlessAppFixture();
+        app.LoadSaveInstance(new SAV6XY());
+        var box = app.Find<BoxViewer>()!;
+        var seen = 0;
+        void Take(object? sender, KeyEventArgs e)
+        {
+            seen++;
+            e.Handled = true;
+        }
+        box.AddHandler(InputElement.KeyDownEvent, Take, RoutingStrategies.Tunnel);
+        box.AddHandler(InputElement.KeyDownEvent, Take, RoutingStrategies.Bubble);
+        app.Focus(box);
+
+        // As a window key binding did, the shortcut handles the key before the focused control sees it.
+        app.PressKey(PhysicalKey.N, RawInputModifiers.Control);
+        Assert.IsType<EncounterDatabaseViewModel>(Assert.Single(app.Windows.ShownTools).ViewModel);
+        Assert.Equal(0, seen);
+
+        // A key without a shortcut still reaches the control.
+        app.PressKey(PhysicalKey.J, RawInputModifiers.Control);
+        Assert.Equal(1, seen);
+    }
+
     // ---------------------------------------------------------------------
     // 9g. Saving in the shortcut editor rebinds the main window live. The test window service
     //     returns from ShowDialogAsync at once, so the rebind must come from the service's event,
@@ -233,7 +362,6 @@ public sealed class KeyboardShortcutShellTests
         Assert.IsType<EncounterDatabaseViewModel>(Assert.Single(app.Windows.ShownTools).ViewModel);
 
         AssertBindingsMatchViewModel(app);
-        Assert.Single(app.Window.KeyBindings, binding => new KeyGesture(Key.Escape).Equals(binding.Gesture));
 
         // The menus follow too, and the Help entry that opened the editor is available.
         Assert.Equal(new KeyGesture(Key.N, KeyModifiers.Control | KeyModifiers.Shift), OpenEncounterMenuItem(app).InputGesture);
@@ -310,8 +438,9 @@ public sealed class KeyboardShortcutShellTests
         var escape = Assert.Single(window.KeyBindings, binding => new KeyGesture(Key.Escape).Equals(binding.Gesture));
 
         AssertBindingsMatchViewModel(app);
-        Assert.Contains(window.KeyBindings, binding => new KeyGesture(Key.D1, KeyModifiers.Control).Equals(binding.Gesture));
-        Assert.DoesNotContain(window.KeyBindings, binding => new KeyGesture(Key.Cancel, KeyModifiers.Control).Equals(binding.Gesture));
+        var owned = window.ShortcutBinder!.OwnedBindings;
+        Assert.Contains(owned, binding => new KeyGesture(Key.D1, KeyModifiers.Control).Equals(binding.Gesture));
+        Assert.DoesNotContain(owned, binding => new KeyGesture(Key.Cancel, KeyModifiers.Control).Equals(binding.Gesture));
 
         var service = app.Services.GetRequiredService<KeyboardShortcutService>();
         service.Apply(app.ViewModel.Shortcuts.Definitions, new Dictionary<string, ShortcutChord?>
@@ -321,7 +450,7 @@ public sealed class KeyboardShortcutShellTests
         app.Pump();
 
         AssertBindingsMatchViewModel(app);
-        Assert.Contains(escape, window.KeyBindings);
+        Assert.Same(escape, Assert.Single(window.KeyBindings));
         app.Focus(app.Find<BoxViewer>()!);
         app.PressKey(PhysicalKey.N, RawInputModifiers.Control);
         Assert.Empty(app.Windows.ShownTools);
@@ -331,9 +460,15 @@ public sealed class KeyboardShortcutShellTests
         window.DataContext = null;
         Assert.Null(window.ShortcutBinder);
         Assert.Same(escape, Assert.Single(window.KeyBindings));
+        // The released binder no longer handles keys.
+        app.PressKey(PhysicalKey.K, RawInputModifiers.Control);
+        Assert.False(app.ViewModel.IsToolLauncherOpen);
 
         window.DataContext = app.ViewModel;
         AssertBindingsMatchViewModel(app);
+        app.Focus(app.Find<BoxViewer>()!);
+        app.PressKey(PhysicalKey.K, RawInputModifiers.Control);
+        Assert.True(app.ViewModel.IsToolLauncherOpen);
     }
 
     // ---------------------------------------------------------------------
@@ -420,10 +555,24 @@ public sealed class KeyboardShortcutShellTests
         var owned = binder!.OwnedBindings.Select(binding => binding.Gesture).ToArray();
 
         Assert.Equal(expected, owned);
-        Assert.All(binder.OwnedBindings, binding => Assert.Contains(binding, window.KeyBindings));
-        // Escape plus one binding per shortcut, and no gesture bound twice.
-        Assert.Equal(expected.Length + 1, window.KeyBindings.Count);
-        Assert.Equal(window.KeyBindings.Count, window.KeyBindings.Select(binding => binding.Gesture).Distinct().Count());
+        Assert.Equal(owned.Length, owned.Distinct().Count());
+        // The shortcuts are matched by the binder's tunnelling handler, not as window key bindings,
+        // which would hide Alt chords from the access-key handler. Only the fixed Escape is a window binding.
+        Assert.DoesNotContain(window.KeyBindings, binding => binder.OwnedBindings.Contains(binding));
+        Assert.Single(window.KeyBindings, binding => new KeyGesture(Key.Escape).Equals(binding.Gesture));
+    }
+
+    private static BoxViewerViewModel MoveSlotZeroToSlotOne(HeadlessAppFixture app)
+    {
+        var save = new SAV6XY();
+        save.SetBoxSlotAtIndex(new PK6 { Species = 25 }, 0, 0);
+        app.LoadSaveInstance(save);
+        var box = app.BoxViewer!;
+        box.RequestMoveCommand.Execute((box.CreateDragData(0), box.Slots[1], false));
+        app.Pump();
+        Assert.Equal(25, box.Slots[1].Species);
+        Assert.True(app.ViewModel.UndoCommand.CanExecute(null));
+        return box;
     }
 
     private static KeyBinding FindOwnedBinding(HeadlessAppFixture app, KeyGesture gesture) =>

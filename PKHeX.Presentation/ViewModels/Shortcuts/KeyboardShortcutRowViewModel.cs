@@ -17,6 +17,7 @@ public sealed partial class KeyboardShortcutRowViewModel : ObservableObject
     private ShortcutChord? _chord;
     private string _message = string.Empty;
     private (string OtherActionId, ShortcutChord Chord)? _pendingConflict;
+    private LostShortcut? _lost;
 
     internal KeyboardShortcutRowViewModel(
         KeyboardShortcutsViewModel owner,
@@ -38,6 +39,23 @@ public sealed partial class KeyboardShortcutRowViewModel : ObservableObject
 
     /// <summary>Localized names of the menus the action appears in.</summary>
     public string CategoryTitle => _action.CategoryTitle;
+
+    /// <summary>Every localized name of the action (Box Layout is also Block Layout); search matches each.</summary>
+    public IReadOnlyList<string> Titles => _action.Titles;
+
+    /// <summary>
+    /// True when another action in the editor has the same <see cref="Title"/> (five tools are
+    /// called "Misc", File and Window both have "Save"). Set once, when the editor opens.
+    /// </summary>
+    internal bool IsTitleShared { get; set; }
+
+    /// <summary>
+    /// <see cref="Title"/>, followed by the menus when another action has the same title:
+    /// "Misc (Gen 3)". Messages and accessible names use it, so they always name one action.
+    /// </summary>
+    public string QualifiedTitle => IsTitleShared
+        ? LocalizedStrings.Instance.Format("Shortcuts_TitleWithMenu", Title, CategoryTitle)
+        : Title;
 
     /// <summary>The concrete platform default, or <see langword="null"/> when the action has none.</summary>
     public ShortcutChord? Default { get; }
@@ -61,6 +79,7 @@ public sealed partial class KeyboardShortcutRowViewModel : ObservableObject
             OnPropertyChanged(nameof(ShortcutText));
             OnPropertyChanged(nameof(HasShortcut));
             OnPropertyChanged(nameof(IsCustomized));
+            OnPropertyChanged(nameof(RecorderAutomationName));
             ClearCommand.NotifyCanExecuteChanged();
             ResetCommand.NotifyCanExecuteChanged();
         }
@@ -100,14 +119,24 @@ public sealed partial class KeyboardShortcutRowViewModel : ObservableObject
     [ObservableProperty]
     private bool _isRecording;
 
-    /// <summary>Accessible name of the recorder: "Shortcut for Encounter Database".</summary>
-    public string RecorderAutomationName => LocalizedStrings.Instance.Format("Shortcuts_RecorderName", Title);
+    /// <summary>
+    /// Accessible name of the recorder with its current value: "Shortcut for Encounter Database:
+    /// Ctrl+N", "...: None", or "...: Press keys..." while recording. The explicit name replaces the
+    /// button text for assistive technology, so the value must be part of it.
+    /// </summary>
+    public string RecorderAutomationName => LocalizedStrings.Instance.Format(
+        "Shortcuts_RecorderName",
+        QualifiedTitle,
+        IsRecording ? LocalizedStrings.Instance["Shortcuts_Recording"] : ShortcutText);
 
     /// <summary>Accessible name of the remove button.</summary>
-    public string ClearAutomationName => LocalizedStrings.Instance.Format("Shortcuts_ClearFor", Title);
+    public string ClearAutomationName => LocalizedStrings.Instance.Format("Shortcuts_ClearFor", QualifiedTitle);
 
     /// <summary>Accessible name of the restore-default button.</summary>
-    public string ResetAutomationName => LocalizedStrings.Instance.Format("Shortcuts_ResetFor", Title);
+    public string ResetAutomationName => LocalizedStrings.Instance.Format("Shortcuts_ResetFor", QualifiedTitle);
+
+    /// <summary>Accessible name of the Reassign button: its visible text and the action it moves the shortcut to.</summary>
+    public string ReassignAutomationName => LocalizedStrings.Instance.Format("Shortcuts_ReassignFor", QualifiedTitle);
 
     internal ShortcutDefinition Definition => _action.Definition;
 
@@ -125,12 +154,24 @@ public sealed partial class KeyboardShortcutRowViewModel : ObservableObject
     [RelayCommand(CanExecute = nameof(HasPendingConflict))]
     private void Reassign() => _owner.Reassign(this);
 
-    partial void OnIsRecordingChanged(bool value) => _owner.OnRowRecordingChanged();
+    partial void OnIsRecordingChanged(bool value)
+    {
+        OnPropertyChanged(nameof(RecorderAutomationName));
+        _owner.OnRowRecordingChanged();
+    }
 
-    /// <summary>Shows <paramref name="message"/> and drops any pending conflict.</summary>
+    /// <summary>
+    /// The shortcut this row lost to another row (a suppressed default, a duplicate, or a moved
+    /// shortcut) while <see cref="Message"/> still explains it; <see langword="null"/> after any
+    /// other feedback. The editor rewrites the message when the other row changes.
+    /// </summary>
+    internal LostShortcut? Lost => _lost;
+
+    /// <summary>Shows <paramref name="message"/> and drops any pending conflict and lost shortcut.</summary>
     internal void SetMessage(string message)
     {
         SetPendingConflict(null);
+        _lost = null;
         Message = message;
     }
 
@@ -138,6 +179,15 @@ public sealed partial class KeyboardShortcutRowViewModel : ObservableObject
     internal void SetConflict(string otherActionId, ShortcutChord chord, string message)
     {
         SetPendingConflict((otherActionId, chord));
+        _lost = null;
+        Message = message;
+    }
+
+    /// <summary>Shows <paramref name="message"/> about a shortcut this row lost to another row.</summary>
+    internal void SetLost(LostShortcut lost, string message)
+    {
+        SetPendingConflict(null);
+        _lost = lost;
         Message = message;
     }
 
@@ -154,3 +204,19 @@ public sealed partial class KeyboardShortcutRowViewModel : ObservableObject
         ReassignCommand.NotifyCanExecuteChanged();
     }
 }
+
+/// <summary>Why a row has no shortcut: the chord another row took from it.</summary>
+internal enum LostShortcutKind
+{
+    /// <summary>The default is inactive because another action's stored shortcut uses it.</summary>
+    SuppressedDefault,
+
+    /// <summary>The stored shortcut is inactive because another action stored the same chord.</summary>
+    DuplicateStored,
+
+    /// <summary>The user moved the shortcut to another row with Reassign.</summary>
+    Moved,
+}
+
+/// <summary>A shortcut a row lost to <paramref name="OtherActionId"/>.</summary>
+internal sealed record LostShortcut(LostShortcutKind Kind, ShortcutChord Chord, string OtherActionId);

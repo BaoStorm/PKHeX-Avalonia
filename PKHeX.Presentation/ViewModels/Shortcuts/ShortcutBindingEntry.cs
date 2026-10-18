@@ -8,9 +8,13 @@ namespace PKHeX.Presentation.ViewModels;
 /// </summary>
 /// <param name="ActionId">Stable action ID.</param>
 /// <param name="Chord">Concrete chord to bind.</param>
-/// <param name="TextRole">
-/// Text-editing meaning of the chord. The host lets a focused text box keep chords with a role
-/// (Undo and Redo) instead of running the action.
+/// <param name="TextRole">Text-editing meaning of the action (Undo or Redo), or none.</param>
+/// <param name="IsTextEditingGesture">
+/// True when <paramref name="Chord"/> is the platform's own text gesture for
+/// <paramref name="TextRole"/> (Ctrl+Z for Undo, Ctrl+Y or Ctrl+Shift+Z for Redo). Only then does the
+/// host let a focused, editable text box keep the key for its own text undo or redo. Any other chord
+/// (for example Undo moved to Ctrl+U) runs the action from a text box too, because the text box has
+/// nothing to do with it.
 /// </param>
 /// <param name="CanInvoke">
 /// Live availability: false while the shortcut editor is open, or when the command or its save-type
@@ -22,5 +26,6 @@ public sealed record ShortcutBindingEntry(
     string ActionId,
     ShortcutChord Chord,
     ShortcutTextRole TextRole,
+    bool IsTextEditingGesture,
     Func<bool> CanInvoke,
     Action Invoke);

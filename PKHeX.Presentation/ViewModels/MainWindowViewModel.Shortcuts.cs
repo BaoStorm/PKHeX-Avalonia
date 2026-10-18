@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using CommunityToolkit.Mvvm.Input;
+using PKHeX.Application.Shortcuts;
 
 namespace PKHeX.Presentation.ViewModels;
 
@@ -111,10 +112,12 @@ public partial class MainWindowViewModel
             if (resolved.Effective is { } chord)
             {
                 var bound = action;
+                var role = bound.Definition.TextRole;
                 bindings.Add(new ShortcutBindingEntry(
                     bound.Id,
                     chord,
-                    bound.Definition.TextRole,
+                    role,
+                    IsTextEditingGesture(platform, chord, role),
                     () => !_shortcutService.IsEditorOpen && bound.CanInvoke(),
                     () => InvokeShortcutAction(bound)));
             }
@@ -124,6 +127,17 @@ public partial class MainWindowViewModel
         OnPropertyChanged(nameof(ShortcutBindings));
         ShortcutBindingsChanged?.Invoke(this, EventArgs.Empty);
     }
+
+    /// <summary>
+    /// True when <paramref name="chord"/> is a text-editing gesture of <paramref name="platform"/>
+    /// that belongs to <paramref name="role"/>: the gesture a focused text box handles itself.
+    /// </summary>
+    private static bool IsTextEditingGesture(IShortcutPlatform platform, ShortcutChord chord, ShortcutTextRole role) =>
+        role != ShortcutTextRole.None
+        && platform.Reservations.Any(reservation =>
+            reservation.Kind == ShortcutReservationKind.TextEditing
+            && reservation.AllowedRole == role
+            && reservation.Chord == chord);
 
     /// <summary>
     /// Runs a shortcut the way a launcher click does: the launcher closes first unless the shortcut

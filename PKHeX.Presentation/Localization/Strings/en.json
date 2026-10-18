@@ -3763,7 +3763,7 @@
   "Shortcuts_CustomizedCount": "{0} customized",
   "Shortcuts_None": "None",
   "Shortcuts_Recording": "Press keys...",
-  "Shortcuts_RecorderName": "Shortcut for {0}",
+  "Shortcuts_RecorderName": "Shortcut for {0}: {1}",
   "Shortcuts_RecorderHelp": "Press Enter, then the new keys. Escape cancels. Backspace removes the shortcut.",
   "Shortcuts_Default": "Default: {0}",
   "Shortcuts_ClearFor": "{0}: remove shortcut",
@@ -3773,7 +3773,7 @@
   "Shortcuts_Conflict": "{0} is already used by {1}.",
   "Shortcuts_Reassign": "Use here instead",
   "Shortcuts_Moved": "Shortcut moved to {0}.",
-  "Shortcuts_Error_UnsupportedKey": "This key cannot be used. Use a letter, a digit or F1 to F12.",
+  "Shortcuts_Error_UnsupportedKey": "This key cannot be used. Use a letter, a number key in the top row, or F1 to F12.",
   "Shortcuts_Error_NeedsModifier": "Add {0} to this key.",
   "Shortcuts_Error_AltGr": "Ctrl+Alt (AltGr) types characters on many keyboards. Use a different combination.",
   "Shortcuts_Error_Reserved": "{0} is reserved for {1}.",
@@ -3786,5 +3786,14 @@
   "Shortcuts_Issue_DuplicateStored": "{0} is also assigned to {1}, so neither action uses it.",
   "Settings_KeyboardShortcuts": "Keyboard Shortcuts",
   "Settings_KeyboardShortcuts_Desc": "Assign keys to the actions and tools you use most.",
-  "Settings_KeyboardShortcuts_Open": "Customize..."
+  "Settings_KeyboardShortcuts_Open": "Customize...",
+  "Shortcuts_TitleWithMenu": "{0} ({1})",
+  "Shortcuts_ReassignFor": "Use here instead: {0}",
+  "Shortcuts_Assigned": "Shortcut set to {0}.",
+  "Shortcuts_Removed": "Shortcut removed.",
+  "Shortcuts_Issue_InvalidStored_NoDefault": "The saved shortcut \"{0}\" cannot be used. This action has no shortcut.",
+  "Shortcuts_Issue_DefaultFree": "The default {0} is free again. Restore the default to use it.",
+  "Shortcuts_Issue_UsedBy": "{0} is now used by {1}.",
+  "Shortcuts_Issue_Free": "{0} is free again. Assign it again to use it here.",
+  "Settings_KeyboardShortcuts_OpenName": "Customize keyboard shortcuts"
 }

@@ -3763,7 +3763,7 @@
   "Shortcuts_CustomizedCount": "{0} angepasst",
   "Shortcuts_None": "Keine",
   "Shortcuts_Recording": "Tasten drücken...",
-  "Shortcuts_RecorderName": "Tastenkombination für {0}",
+  "Shortcuts_RecorderName": "Tastenkombination für {0}: {1}",
   "Shortcuts_RecorderHelp": "Drücke die Eingabetaste und dann die neuen Tasten. Escape bricht ab. Die Rücktaste entfernt die Tastenkombination.",
   "Shortcuts_Default": "Standard: {0}",
   "Shortcuts_ClearFor": "{0}: Tastenkombination entfernen",
@@ -3773,7 +3773,7 @@
   "Shortcuts_Conflict": "{0} wird bereits von {1} verwendet.",
   "Shortcuts_Reassign": "Hier verwenden",
   "Shortcuts_Moved": "Tastenkombination wurde zu {0} verschoben.",
-  "Shortcuts_Error_UnsupportedKey": "Diese Taste kann nicht verwendet werden. Verwende einen Buchstaben, eine Ziffer oder F1 bis F12.",
+  "Shortcuts_Error_UnsupportedKey": "Diese Taste kann nicht verwendet werden. Verwende einen Buchstaben, eine Zifferntaste der oberen Reihe oder F1 bis F12.",
   "Shortcuts_Error_NeedsModifier": "Füge dieser Taste {0} hinzu.",
   "Shortcuts_Error_AltGr": "Strg+Alt (AltGr) gibt auf vielen Tastaturen Zeichen ein. Verwende eine andere Kombination.",
   "Shortcuts_Error_Reserved": "{0} ist für {1} reserviert.",
@@ -3786,5 +3786,14 @@
   "Shortcuts_Issue_DuplicateStored": "{0} ist auch {1} zugewiesen, daher verwendet keine der beiden Aktionen die Kombination.",
   "Settings_KeyboardShortcuts": "Tastenkombinationen",
   "Settings_KeyboardShortcuts_Desc": "Weise den Aktionen und Tools, die du am häufigsten nutzt, Tasten zu.",
-  "Settings_KeyboardShortcuts_Open": "Anpassen..."
+  "Settings_KeyboardShortcuts_Open": "Anpassen...",
+  "Shortcuts_TitleWithMenu": "{0} ({1})",
+  "Shortcuts_ReassignFor": "Hier verwenden: {0}",
+  "Shortcuts_Assigned": "Tastenkombination auf {0} gesetzt.",
+  "Shortcuts_Removed": "Tastenkombination entfernt.",
+  "Shortcuts_Issue_InvalidStored_NoDefault": "Die gespeicherte Tastenkombination „{0}“ kann nicht verwendet werden. Diese Aktion hat keine Tastenkombination.",
+  "Shortcuts_Issue_DefaultFree": "Der Standard {0} ist wieder frei. Stelle den Standard wieder her, um ihn zu verwenden.",
+  "Shortcuts_Issue_UsedBy": "{0} wird jetzt von {1} verwendet.",
+  "Shortcuts_Issue_Free": "{0} ist wieder frei. Weise die Kombination erneut zu, um sie hier zu verwenden.",
+  "Settings_KeyboardShortcuts_OpenName": "Tastenkombinationen anpassen"
 }

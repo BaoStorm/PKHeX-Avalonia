@@ -160,6 +160,11 @@ public sealed class ShortcutRecorder : Button
         if (IsRecording)
         {
             e.Handled = true;
+
+            // Show only the modifiers that are still held. Platforms differ on whether the released
+            // modifier is still in KeyModifiers, so remove it explicitly.
+            var held = e.KeyModifiers & ~ModifierOf(e.Key);
+            PartialText = held == KeyModifiers.None ? null : FormatPartial(held);
             return;
         }
 

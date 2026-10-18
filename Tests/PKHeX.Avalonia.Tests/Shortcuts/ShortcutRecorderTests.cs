@@ -56,6 +56,54 @@ public sealed class ShortcutRecorderTests
     }
 
     [AvaloniaFact]
+    public void ReleasingAModifier_RemovesItFromTheProgress()
+    {
+        using var host = Host.Create(new AppSettings(), Encounter);
+        host.Press(PhysicalKey.Enter);
+
+        host.Down(PhysicalKey.ControlLeft, RawInputModifiers.Control);
+        host.Down(PhysicalKey.ShiftLeft, RawInputModifiers.Control | RawInputModifiers.Shift);
+        Assert.Equal("Ctrl+Shift+…", host.Recorder.Content);
+
+        // Some platforms still report the released modifier in the key-up event; it is not held.
+        host.Up(PhysicalKey.ControlLeft, RawInputModifiers.Control | RawInputModifiers.Shift);
+        Assert.Equal("Shift+…", host.Recorder.PartialText);
+        Assert.Equal("Shift+…", host.Recorder.Content);
+
+        host.Up(PhysicalKey.ShiftLeft, RawInputModifiers.Shift);
+        Assert.Null(host.Recorder.PartialText);
+        Assert.Equal(LocalizedStrings.Instance["Shortcuts_Recording"], host.Recorder.Content);
+        Assert.True(host.Recorder.IsRecording);
+
+        // What the button showed is what gets recorded.
+        host.Down(PhysicalKey.ControlLeft, RawInputModifiers.Control);
+        host.Press(PhysicalKey.E, RawInputModifiers.Control);
+        Assert.Equal(new ShortcutChord(ShortcutModifiers.Control, "E"), host.Row.Chord);
+    }
+
+    [AvaloniaFact]
+    public void AccessibleName_FollowsTheShortcutAndTheRecordingState()
+    {
+        using var host = Host.Create(new AppSettings(), Encounter);
+        var peer = new ButtonAutomationPeer(host.Recorder);
+        var title = host.Row.Title;
+        Assert.Equal(LocalizedStrings.Instance.Format("Shortcuts_RecorderName", title, "Ctrl+N"), peer.GetName());
+
+        host.Press(PhysicalKey.Enter);
+        Assert.Equal(LocalizedStrings.Instance.Format("Shortcuts_RecorderName", title, LocalizedStrings.Instance["Shortcuts_Recording"]), peer.GetName());
+
+        host.Press(PhysicalKey.E, RawInputModifiers.Control);
+        Assert.Equal(LocalizedStrings.Instance.Format("Shortcuts_RecorderName", title, "Ctrl+E"), peer.GetName());
+
+        // The row's message is a polite live region that now names the new shortcut.
+        var message = host.View.GetVisualDescendants().OfType<TextBlock>()
+            .Single(text => ReferenceEquals(text.DataContext, host.Row) && text.Text == host.Row.Message);
+        Assert.Equal(LocalizedStrings.Instance.Format("Shortcuts_Assigned", "Ctrl+E"), message.Text);
+        Assert.Equal(global::Avalonia.Automation.AutomationLiveSetting.Polite, global::Avalonia.Automation.AutomationProperties.GetLiveSetting(message));
+        Assert.True(message.IsEffectivelyVisible);
+    }
+
+    [AvaloniaFact]
     public void Click_StartsRecording()
     {
         using var host = Host.Create(new AppSettings(), Encounter);

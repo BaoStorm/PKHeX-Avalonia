@@ -3763,7 +3763,7 @@
   "Shortcuts_CustomizedCount": "{0} personalizados",
   "Shortcuts_None": "Ninguno",
   "Shortcuts_Recording": "Pulsa las teclas...",
-  "Shortcuts_RecorderName": "Atajo para {0}",
+  "Shortcuts_RecorderName": "Atajo para {0}: {1}",
   "Shortcuts_RecorderHelp": "Pulsa Intro y luego las nuevas teclas. Escape cancela. Retroceso elimina el atajo.",
   "Shortcuts_Default": "Predeterminado: {0}",
   "Shortcuts_ClearFor": "{0}: quitar atajo",
@@ -3773,7 +3773,7 @@
   "Shortcuts_Conflict": "{0} ya lo usa {1}.",
   "Shortcuts_Reassign": "Usar aquí",
   "Shortcuts_Moved": "Atajo movido a {0}.",
-  "Shortcuts_Error_UnsupportedKey": "Esta tecla no se puede usar. Usa una letra, un dígito o de F1 a F12.",
+  "Shortcuts_Error_UnsupportedKey": "Esta tecla no se puede usar. Usa una letra, una tecla numérica de la fila superior o de F1 a F12.",
   "Shortcuts_Error_NeedsModifier": "Añade {0} a esta tecla.",
   "Shortcuts_Error_AltGr": "Ctrl+Alt (AltGr) escribe caracteres en muchos teclados. Usa otra combinación.",
   "Shortcuts_Error_Reserved": "{0} está reservado para {1}.",
@@ -3786,5 +3786,14 @@
   "Shortcuts_Issue_DuplicateStored": "{0} también está asignado a {1}, así que ninguna de las dos acciones lo usa.",
   "Settings_KeyboardShortcuts": "Atajos de teclado",
   "Settings_KeyboardShortcuts_Desc": "Asigna teclas a las acciones y herramientas que más usas.",
-  "Settings_KeyboardShortcuts_Open": "Personalizar..."
+  "Settings_KeyboardShortcuts_Open": "Personalizar...",
+  "Shortcuts_TitleWithMenu": "{0} ({1})",
+  "Shortcuts_ReassignFor": "Usar aquí: {0}",
+  "Shortcuts_Assigned": "Atajo establecido en {0}.",
+  "Shortcuts_Removed": "Atajo eliminado.",
+  "Shortcuts_Issue_InvalidStored_NoDefault": "El atajo guardado «{0}» no se puede usar. Esta acción no tiene atajo.",
+  "Shortcuts_Issue_DefaultFree": "El predeterminado {0} vuelve a estar libre. Restaura el predeterminado para usarlo.",
+  "Shortcuts_Issue_UsedBy": "{0} ahora lo usa {1}.",
+  "Shortcuts_Issue_Free": "{0} vuelve a estar libre. Asígnalo de nuevo para usarlo aquí.",
+  "Settings_KeyboardShortcuts_OpenName": "Personalizar atajos de teclado"
 }

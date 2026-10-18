@@ -71,6 +71,9 @@ public sealed class KeyboardShortcutsViewLayoutTests
             Assert.Equal(2, actions.Length);
             var reassign = rowRoot.GetVisualDescendants().OfType<Button>()
                 .Single(button => ReferenceEquals(button.Command, first.ReassignCommand));
+            // The Reassign button's name keeps its visible text and adds the row it moves the shortcut to.
+            Assert.Equal(first.ReassignAutomationName, new ButtonAutomationPeer(reassign).GetName());
+            Assert.Contains((string)reassign.Content!, first.ReassignAutomationName);
             var list = view.FindControl<ScrollViewer>("ShortcutsList")!;
             foreach (var control in new Control[] { recorder, actions[0], actions[1], reassign })
             {
@@ -125,6 +128,11 @@ public sealed class KeyboardShortcutsViewLayoutTests
             AssertInside(scroll, button);
             AssertInside(view, button);
             Assert.True(button.IsEffectivelyEnabled);
+
+            // Label in Name (WCAG 2.5.3): the accessible name contains the visible "Customize..." text.
+            var name = new ButtonAutomationPeer(button).GetName();
+            Assert.Equal(LocalizedStrings.Instance["Settings_KeyboardShortcuts_OpenName"], name);
+            Assert.Contains(((string)button.Content!).TrimEnd('.', '…').Trim(), name, StringComparison.CurrentCultureIgnoreCase);
 
             ((IInvokeProvider)new ButtonAutomationPeer(button)).Invoke();
             Pump(window);

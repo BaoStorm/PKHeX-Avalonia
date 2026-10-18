@@ -66,8 +66,24 @@ public sealed class KeyboardShortcutServiceTests
         });
 
         Assert.Equal("Primary+Shift+N", _settings.KeyboardShortcuts["OpenEncounterDatabase"]);
-        Assert.Equal("Primary+Ctrl+M", _settings.KeyboardShortcuts["OpenMisc3"]);
+        Assert.Equal("Ctrl+Meta+M", _settings.KeyboardShortcuts["OpenMisc3"]);
         Assert.Equal(new ShortcutChord(Ctrl | Meta, "M"), service.Resolve(Definitions)["OpenMisc3"].Effective);
+    }
+
+    [Fact]
+    public void CtrlCmdChord_SavedOnApple_DoesNotTakeAWindowsChord()
+    {
+        // Cmd+Ctrl+N recorded on macOS must not become Ctrl+N on Windows/Linux, where it would
+        // suppress the Encounter Database default there.
+        CreateService(FakeShortcutPlatform.Apple()).Apply(Definitions,
+            Change("OpenMisc3", new ShortcutChord(Ctrl | Meta, "N")));
+
+        var onWindows = CreateService(FakeShortcutPlatform.StandardDesktop()).Resolve(Definitions);
+
+        Assert.Equal(ShortcutIssueKind.UnusableStored, onWindows["OpenMisc3"].Issue!.Kind);
+        Assert.Null(onWindows["OpenMisc3"].Effective);
+        Assert.Equal(new ShortcutChord(Ctrl, "N"), onWindows["OpenEncounterDatabase"].Effective);
+        Assert.Null(onWindows["OpenEncounterDatabase"].Issue);
     }
 
     [Fact]

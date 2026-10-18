@@ -126,10 +126,26 @@ public sealed class ShortcutChordTests
         Assert.Equal(literalCtrl, literalCtrl.ToPortable(ShortcutPlatformFlavor.Apple));
         Assert.Equal(literalCtrl, literalCtrl.Resolve(ShortcutPlatformFlavor.Apple));
 
+        // Ctrl+Cmd stays fully literal. As "Primary+Ctrl+N" it would become plain Ctrl+N on
+        // Windows/Linux, where Primary is Ctrl, and take that chord from another action there.
         var ctrlAndCmd = new ShortcutChord(Ctrl | Meta, "N");
         var portable = ctrlAndCmd.ToPortable(ShortcutPlatformFlavor.Apple);
-        Assert.Equal("Primary+Ctrl+N", portable.ToStorageString());
+        Assert.Equal("Ctrl+Meta+N", portable.ToStorageString());
         Assert.Equal(ctrlAndCmd, portable.Resolve(ShortcutPlatformFlavor.Apple));
+        Assert.Equal(ctrlAndCmd, portable.Resolve(ShortcutPlatformFlavor.Standard));
+    }
+
+    [Theory]
+    [InlineData("Primary+Ctrl+K", ShortcutPlatformFlavor.Standard, true)]
+    [InlineData("Primary+Ctrl+K", ShortcutPlatformFlavor.Apple, false)]
+    [InlineData("Primary+Meta+K", ShortcutPlatformFlavor.Apple, true)]
+    [InlineData("Primary+Meta+K", ShortcutPlatformFlavor.Standard, false)]
+    [InlineData("Primary+Shift+K", ShortcutPlatformFlavor.Standard, false)]
+    [InlineData("Ctrl+Meta+K", ShortcutPlatformFlavor.Standard, false)]
+    public void IsAmbiguousOn_DetectsPrimaryNextToTheModifierItStandsFor(string text, ShortcutPlatformFlavor flavor, bool expected)
+    {
+        Assert.True(ShortcutChord.TryParse(text, out var chord));
+        Assert.Equal(expected, chord.IsAmbiguousOn(flavor));
     }
 
     [Fact]

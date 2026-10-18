@@ -3763,7 +3763,7 @@
   "Shortcuts_CustomizedCount": "{0} personnalisé(s)",
   "Shortcuts_None": "Aucun",
   "Shortcuts_Recording": "Appuyez sur des touches...",
-  "Shortcuts_RecorderName": "Raccourci pour {0}",
+  "Shortcuts_RecorderName": "Raccourci pour {0} : {1}",
   "Shortcuts_RecorderHelp": "Appuyez sur Entrée, puis sur les nouvelles touches. Échap annule. Retour arrière supprime le raccourci.",
   "Shortcuts_Default": "Par défaut : {0}",
   "Shortcuts_ClearFor": "{0} : supprimer le raccourci",
@@ -3773,7 +3773,7 @@
   "Shortcuts_Conflict": "{0} est déjà utilisé par {1}.",
   "Shortcuts_Reassign": "Utiliser ici",
   "Shortcuts_Moved": "Raccourci déplacé vers {0}.",
-  "Shortcuts_Error_UnsupportedKey": "Cette touche ne peut pas être utilisée. Utilisez une lettre, un chiffre ou une touche de F1 à F12.",
+  "Shortcuts_Error_UnsupportedKey": "Cette touche ne peut pas être utilisée. Utilisez une lettre, une touche numérique de la rangée supérieure ou une touche de F1 à F12.",
   "Shortcuts_Error_NeedsModifier": "Ajoutez {0} à cette touche.",
   "Shortcuts_Error_AltGr": "Ctrl+Alt (AltGr) saisit des caractères sur de nombreux claviers. Utilisez une autre combinaison.",
   "Shortcuts_Error_Reserved": "{0} est réservé : {1}.",
@@ -3786,5 +3786,14 @@
   "Shortcuts_Issue_DuplicateStored": "{0} est aussi attribué à {1} : aucune des deux actions ne l'utilise.",
   "Settings_KeyboardShortcuts": "Raccourcis clavier",
   "Settings_KeyboardShortcuts_Desc": "Attribuez des touches aux actions et aux outils que vous utilisez le plus.",
-  "Settings_KeyboardShortcuts_Open": "Personnaliser..."
+  "Settings_KeyboardShortcuts_Open": "Personnaliser...",
+  "Shortcuts_TitleWithMenu": "{0} ({1})",
+  "Shortcuts_ReassignFor": "Utiliser ici : {0}",
+  "Shortcuts_Assigned": "Raccourci défini sur {0}.",
+  "Shortcuts_Removed": "Raccourci supprimé.",
+  "Shortcuts_Issue_InvalidStored_NoDefault": "Le raccourci enregistré « {0} » ne peut pas être utilisé. Cette action n'a aucun raccourci.",
+  "Shortcuts_Issue_DefaultFree": "Le raccourci par défaut {0} est de nouveau libre. Rétablissez la valeur par défaut pour l'utiliser.",
+  "Shortcuts_Issue_UsedBy": "{0} est maintenant utilisé par {1}.",
+  "Shortcuts_Issue_Free": "{0} est de nouveau libre. Attribuez-le à nouveau pour l'utiliser ici.",
+  "Settings_KeyboardShortcuts_OpenName": "Personnaliser les raccourcis clavier"
 }

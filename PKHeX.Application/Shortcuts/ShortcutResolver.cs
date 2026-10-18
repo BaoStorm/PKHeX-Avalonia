@@ -21,7 +21,10 @@ public enum ShortcutIssueKind
     /// <summary>The stored text does not parse; the default stays in effect.</summary>
     InvalidStored,
 
-    /// <summary>The stored chord parses but breaks a <see cref="ShortcutPolicy"/> rule; the default stays in effect.</summary>
+    /// <summary>
+    /// The stored chord parses but breaks a <see cref="ShortcutPolicy"/> rule, or it holds Primary
+    /// next to the literal modifier Primary stands for on this platform; the default stays in effect.
+    /// </summary>
     UnusableStored,
 
     /// <summary>The default is inactive because a stored override of another action uses the same chord.</summary>
@@ -144,8 +147,11 @@ public static class ShortcutResolver
                 continue;
             }
 
+            // Primary next to the literal modifier it stands for (Primary+Ctrl on Windows/Linux)
+            // would collapse into a different, shorter chord that may belong to another action.
             var concrete = parsed.Resolve(flavor);
-            if (ShortcutPolicy.CheckUsable(definition, concrete, platform).Kind != ShortcutValidationKind.Ok)
+            if (parsed.IsAmbiguousOn(flavor)
+                || ShortcutPolicy.CheckUsable(definition, concrete, platform).Kind != ShortcutValidationKind.Ok)
             {
                 resolved[i] = new ResolvedShortcut(definition.Id, fallback, fallback, fallbackSource,
                     new ShortcutIssue(ShortcutIssueKind.UnusableStored, raw, null));

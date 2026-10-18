@@ -3763,7 +3763,7 @@
   "Shortcuts_CustomizedCount": "已自定义 {0} 项",
   "Shortcuts_None": "无",
   "Shortcuts_Recording": "请按键...",
-  "Shortcuts_RecorderName": "{0} 的快捷键",
+  "Shortcuts_RecorderName": "{0} 的快捷键：{1}",
   "Shortcuts_RecorderHelp": "按 Enter，然后按下新的按键。Esc 取消，Backspace 删除快捷键。",
   "Shortcuts_Default": "默认：{0}",
   "Shortcuts_ClearFor": "{0}：删除快捷键",
@@ -3773,7 +3773,7 @@
   "Shortcuts_Conflict": "{0} 已被 {1} 使用。",
   "Shortcuts_Reassign": "改为在此使用",
   "Shortcuts_Moved": "快捷键已移至 {0}。",
-  "Shortcuts_Error_UnsupportedKey": "无法使用此按键。请使用字母、数字或 F1–F12。",
+  "Shortcuts_Error_UnsupportedKey": "无法使用此按键。请使用字母、键盘上方一排的数字键或 F1–F12。",
   "Shortcuts_Error_NeedsModifier": "请为此按键添加 {0}。",
   "Shortcuts_Error_AltGr": "在许多键盘上，Ctrl+Alt (AltGr) 用于输入字符。请使用其他组合。",
   "Shortcuts_Error_Reserved": "{0} 已保留给{1}。",
@@ -3786,5 +3786,14 @@
   "Shortcuts_Issue_DuplicateStored": "{0} 同时分配给了 {1}，因此两个操作都不会使用它。",
   "Settings_KeyboardShortcuts": "键盘快捷键",
   "Settings_KeyboardShortcuts_Desc": "为最常用的操作和工具分配按键。",
-  "Settings_KeyboardShortcuts_Open": "自定义..."
+  "Settings_KeyboardShortcuts_Open": "自定义...",
+  "Shortcuts_TitleWithMenu": "{0}（{1}）",
+  "Shortcuts_ReassignFor": "改为在此使用：{0}",
+  "Shortcuts_Assigned": "快捷键已设为 {0}。",
+  "Shortcuts_Removed": "快捷键已删除。",
+  "Shortcuts_Issue_InvalidStored_NoDefault": "无法使用已保存的快捷键“{0}”。此操作没有快捷键。",
+  "Shortcuts_Issue_DefaultFree": "默认快捷键 {0} 已空出。恢复默认值即可使用。",
+  "Shortcuts_Issue_UsedBy": "{0} 现在由 {1} 使用。",
+  "Shortcuts_Issue_Free": "{0} 已空出。重新分配即可在此使用。",
+  "Settings_KeyboardShortcuts_OpenName": "自定义键盘快捷键"
 }

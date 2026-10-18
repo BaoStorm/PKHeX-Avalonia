@@ -3763,7 +3763,7 @@
   "Shortcuts_CustomizedCount": "{0} personalizzate",
   "Shortcuts_None": "Nessuna",
   "Shortcuts_Recording": "Premi i tasti...",
-  "Shortcuts_RecorderName": "Scorciatoia per {0}",
+  "Shortcuts_RecorderName": "Scorciatoia per {0}: {1}",
   "Shortcuts_RecorderHelp": "Premi Invio, poi i nuovi tasti. Esc annulla. Backspace rimuove la scorciatoia.",
   "Shortcuts_Default": "Predefinita: {0}",
   "Shortcuts_ClearFor": "{0}: rimuovi scorciatoia",
@@ -3773,7 +3773,7 @@
   "Shortcuts_Conflict": "{0} è già usata da {1}.",
   "Shortcuts_Reassign": "Usa qui",
   "Shortcuts_Moved": "Scorciatoia spostata su {0}.",
-  "Shortcuts_Error_UnsupportedKey": "Questo tasto non può essere usato. Usa una lettera, una cifra o un tasto da F1 a F12.",
+  "Shortcuts_Error_UnsupportedKey": "Questo tasto non può essere usato. Usa una lettera, un tasto numerico della riga superiore o un tasto da F1 a F12.",
   "Shortcuts_Error_NeedsModifier": "Aggiungi {0} a questo tasto.",
   "Shortcuts_Error_AltGr": "Ctrl+Alt (AltGr) digita caratteri su molte tastiere. Usa un'altra combinazione.",
   "Shortcuts_Error_Reserved": "{0} è riservata: {1}.",
@@ -3786,5 +3786,14 @@
   "Shortcuts_Issue_DuplicateStored": "{0} è assegnata anche a {1}, quindi nessuna delle due azioni la usa.",
   "Settings_KeyboardShortcuts": "Scorciatoie da tastiera",
   "Settings_KeyboardShortcuts_Desc": "Assegna tasti alle azioni e agli strumenti che usi di più.",
-  "Settings_KeyboardShortcuts_Open": "Personalizza..."
+  "Settings_KeyboardShortcuts_Open": "Personalizza...",
+  "Shortcuts_TitleWithMenu": "{0} ({1})",
+  "Shortcuts_ReassignFor": "Usa qui: {0}",
+  "Shortcuts_Assigned": "Scorciatoia impostata su {0}.",
+  "Shortcuts_Removed": "Scorciatoia rimossa.",
+  "Shortcuts_Issue_InvalidStored_NoDefault": "La scorciatoia salvata \"{0}\" non può essere usata. Questa azione non ha scorciatoie.",
+  "Shortcuts_Issue_DefaultFree": "La scorciatoia predefinita {0} è di nuovo libera. Ripristina quella predefinita per usarla.",
+  "Shortcuts_Issue_UsedBy": "{0} è ora usata da {1}.",
+  "Shortcuts_Issue_Free": "{0} è di nuovo libera. Assegnala di nuovo per usarla qui.",
+  "Settings_KeyboardShortcuts_OpenName": "Personalizza scorciatoie da tastiera"
 }

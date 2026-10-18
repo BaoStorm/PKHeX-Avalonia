@@ -58,16 +58,31 @@ public sealed partial class KeyboardShortcutsViewModel : ViewModelBase, ICloseab
         Rows = rows;
         _filteredRows = rows;
 
-        // Issues name other rows, so describe them once every row exists.
+        // Messages and accessible names add the menus to a title that several actions share.
+        foreach (var group in rows.GroupBy(row => row.Title, StringComparer.CurrentCultureIgnoreCase))
+        {
+            if (!group.Skip(1).Any())
+                continue;
+            foreach (var row in group)
+                row.IsTitleShared = true;
+        }
+
+        // Issues name other rows, so describe them once every row exists. A shortcut lost to another
+        // row is described from the draft, and described again whenever that row changes.
         foreach (var row in rows)
         {
             if (table[row.ActionId].Issue is not { } issue)
                 continue;
 
-            row.SetMessage(DescribeIssue(row, issue));
             if (issue.Kind is ShortcutIssueKind.SuppressedDefault or ShortcutIssueKind.DuplicateStored)
                 _writeOnSave.Add(row.ActionId);
+
+            if (LostFor(row, issue) is { } lost)
+                row.SetLost(lost, string.Empty);
+            else
+                row.SetMessage(DescribeIssue(row, issue));
         }
+        RefreshLostMessages(except: null);
     }
 
     public Action? CloseRequested { get; set; }
@@ -163,7 +178,8 @@ public sealed partial class KeyboardShortcutsViewModel : ViewModelBase, ICloseab
         {
             case ShortcutValidationKind.Ok:
                 Assign(row, concrete);
-                row.ClearFeedback();
+                // The message is a polite live region, so a screen reader hears the new shortcut.
+                row.SetMessage(LocalizedStrings.Instance.Format("Shortcuts_Assigned", Display(concrete)));
                 break;
             case ShortcutValidationKind.Unchanged:
                 row.ClearFeedback();
@@ -171,7 +187,7 @@ public sealed partial class KeyboardShortcutsViewModel : ViewModelBase, ICloseab
             case ShortcutValidationKind.Conflict:
                 var other = _rowsById[result.ConflictingActionId!];
                 row.SetConflict(other.ActionId, concrete,
-                    LocalizedStrings.Instance.Format("Shortcuts_Conflict", Display(concrete), other.Title));
+                    LocalizedStrings.Instance.Format("Shortcuts_Conflict", Display(concrete), other.QualifiedTitle));
                 break;
             case ShortcutValidationKind.NeedsModifier:
                 row.SetMessage(LocalizedStrings.Instance.Format("Shortcuts_Error_NeedsModifier", _service.Platform.PrimaryModifierDisplay));
@@ -192,7 +208,7 @@ public sealed partial class KeyboardShortcutsViewModel : ViewModelBase, ICloseab
     internal void Clear(KeyboardShortcutRowViewModel row)
     {
         Assign(row, null);
-        row.ClearFeedback();
+        row.SetMessage(T("Shortcuts_Removed"));
     }
 
     /// <summary>Restores the row's default through the same validation, so a conflict still asks first.</summary>
@@ -213,7 +229,8 @@ public sealed partial class KeyboardShortcutsViewModel : ViewModelBase, ICloseab
         if (_rowsById.TryGetValue(pending.OtherActionId, out var other) && _draft[other.ActionId] == pending.Chord)
         {
             Assign(other, null);
-            other.SetMessage(LocalizedStrings.Instance.Format("Shortcuts_Moved", row.Title));
+            var lost = new LostShortcut(LostShortcutKind.Moved, pending.Chord, row.ActionId);
+            other.SetLost(lost, DescribeLost(other, lost));
         }
 
         // Validate again: the draft may have changed since the conflict was shown.
@@ -236,8 +253,9 @@ public sealed partial class KeyboardShortcutsViewModel : ViewModelBase, ICloseab
             : Rows.Where(row => Matches(row, query)).ToArray();
     }
 
+    // Every menu name counts: the Gen 4 menu calls Box Layout "Block Layout".
     private static bool Matches(KeyboardShortcutRowViewModel row, string query) =>
-        row.Title.Contains(query, StringComparison.CurrentCultureIgnoreCase)
+        row.Titles.Any(title => title.Contains(query, StringComparison.CurrentCultureIgnoreCase))
         || row.CategoryTitle.Contains(query, StringComparison.CurrentCultureIgnoreCase)
         || (row.HasShortcut && row.ShortcutText.Contains(query, StringComparison.CurrentCultureIgnoreCase));
 
@@ -246,8 +264,75 @@ public sealed partial class KeyboardShortcutsViewModel : ViewModelBase, ICloseab
         _draft[row.ActionId] = chord;
         row.Chord = chord;
         _changed.Add(row.ActionId);
+        RefreshLostMessages(except: row);
         OnDraftChanged();
     }
+
+    /// <summary>
+    /// Describes again every shortcut a row lost to another row, so no message names an action that
+    /// no longer holds the chord. <paramref name="except"/> is the edited row, which gets its own feedback.
+    /// </summary>
+    private void RefreshLostMessages(KeyboardShortcutRowViewModel? except)
+    {
+        foreach (var row in Rows)
+        {
+            if (ReferenceEquals(row, except) || row.Chord is not null || row.Lost is not { } lost)
+                continue;
+            row.SetLost(lost, DescribeLost(row, lost));
+        }
+    }
+
+    // The chord the row lost when the editor opened, or null when the issue names no other row.
+    private LostShortcut? LostFor(KeyboardShortcutRowViewModel row, ShortcutIssue issue)
+    {
+        if (issue.OtherActionId is not { } otherId || !_rowsById.ContainsKey(otherId))
+            return null;
+
+        return issue.Kind switch
+        {
+            ShortcutIssueKind.SuppressedDefault when row.Default is { } fallback =>
+                new LostShortcut(LostShortcutKind.SuppressedDefault, fallback, otherId),
+            ShortcutIssueKind.DuplicateStored when (StoredChord(issue.Raw) ?? row.Default) is { } chord =>
+                new LostShortcut(LostShortcutKind.DuplicateStored, chord, otherId),
+            _ => null,
+        };
+    }
+
+    /// <summary>Explains <paramref name="lost"/> from the current draft: who holds the chord now, or that it is free.</summary>
+    private string DescribeLost(KeyboardShortcutRowViewModel row, LostShortcut lost)
+    {
+        var chord = Display(lost.Chord);
+        var holder = Rows.FirstOrDefault(other => !ReferenceEquals(other, row) && _draft[other.ActionId] == lost.Chord);
+        var other = _rowsById[lost.OtherActionId];
+
+        switch (lost.Kind)
+        {
+            // A default is also blocked by stored duplicates that nobody has resolved yet.
+            case LostShortcutKind.SuppressedDefault:
+                var blocker = holder ?? (IsUnresolvedDuplicate(other, lost.Chord) ? other : null);
+                return blocker is not null
+                    ? LocalizedStrings.Instance.Format("Shortcuts_Issue_SuppressedDefault", chord, blocker.QualifiedTitle)
+                    : LocalizedStrings.Instance.Format("Shortcuts_Issue_DefaultFree", chord);
+
+            case LostShortcutKind.DuplicateStored when holder is null && IsUnresolvedDuplicate(row, lost.Chord):
+                return LocalizedStrings.Instance.Format("Shortcuts_Issue_DuplicateStored", chord, other.QualifiedTitle);
+
+            case LostShortcutKind.Moved when ReferenceEquals(holder, other):
+                return LocalizedStrings.Instance.Format("Shortcuts_Moved", other.QualifiedTitle);
+        }
+
+        return holder is not null
+            ? LocalizedStrings.Instance.Format("Shortcuts_Issue_UsedBy", chord, holder.QualifiedTitle)
+            : LocalizedStrings.Instance.Format("Shortcuts_Issue_Free", chord);
+    }
+
+    // True while the row and the row it names both still claim the same stored chord, so neither has it.
+    private bool IsUnresolvedDuplicate(KeyboardShortcutRowViewModel row, ShortcutChord chord) =>
+        IsDuplicateClaim(row, chord)
+        && IsDuplicateClaim(_rowsById[row.Lost!.OtherActionId], chord);
+
+    private static bool IsDuplicateClaim(KeyboardShortcutRowViewModel row, ShortcutChord chord) =>
+        row is { Chord: null, Lost: { Kind: LostShortcutKind.DuplicateStored } claim } && claim.Chord == chord;
 
     private void OnDraftChanged()
     {
@@ -258,7 +343,7 @@ public sealed partial class KeyboardShortcutsViewModel : ViewModelBase, ICloseab
     private string DescribeIssue(KeyboardShortcutRowViewModel row, ShortcutIssue issue)
     {
         var otherTitle = issue.OtherActionId is { } otherId && _rowsById.TryGetValue(otherId, out var other)
-            ? other.Title
+            ? other.QualifiedTitle
             : issue.OtherActionId ?? string.Empty;
 
         return issue.Kind switch
@@ -267,13 +352,22 @@ public sealed partial class KeyboardShortcutsViewModel : ViewModelBase, ICloseab
                 row.Default is { } fallback ? Display(fallback) : string.Empty, otherTitle),
             ShortcutIssueKind.DuplicateStored => LocalizedStrings.Instance.Format("Shortcuts_Issue_DuplicateStored",
                 StoredText(issue.Raw) ?? (row.Default is { } shared ? Display(shared) : string.Empty), otherTitle),
-            _ => LocalizedStrings.Instance.Format("Shortcuts_Issue_InvalidStored", issue.Raw ?? string.Empty),
+            // The stored value is ignored: the row keeps its default, or has no shortcut when it has no default.
+            _ => LocalizedStrings.Instance.Format(
+                row.Default is null ? "Shortcuts_Issue_InvalidStored_NoDefault" : "Shortcuts_Issue_InvalidStored",
+                (issue.Kind == ShortcutIssueKind.UnusableStored ? StoredText(issue.Raw) : issue.Raw) ?? string.Empty),
         };
     }
 
-    // The stored text as the platform shows it, when it parses.
-    private string? StoredText(string? raw) =>
-        ShortcutChord.TryParse(raw, out var parsed) ? Display(parsed.Resolve(_service.Platform.Flavor)) : raw;
+    // The concrete chord of stored text, when it parses into one chord on this platform.
+    private ShortcutChord? StoredChord(string? raw)
+    {
+        var flavor = _service.Platform.Flavor;
+        return ShortcutChord.TryParse(raw, out var parsed) && !parsed.IsAmbiguousOn(flavor) ? parsed.Resolve(flavor) : null;
+    }
+
+    // The stored text as the platform shows it when it parses into one chord, otherwise as stored.
+    private string? StoredText(string? raw) => StoredChord(raw) is { } chord ? Display(chord) : raw;
 
     private static string ReservedReason(ShortcutReservationKind? kind) => kind switch
     {

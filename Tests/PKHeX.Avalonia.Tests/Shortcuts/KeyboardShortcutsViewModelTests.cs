@@ -50,7 +50,7 @@ public sealed class KeyboardShortcutsViewModelTests
         encounter.ReassignCommand.Execute(null);
 
         Assert.Equal(ctrlK, encounter.Chord);
-        Assert.False(encounter.HasMessage);
+        Assert.Equal(L.Format("Shortcuts_Assigned", "Ctrl+K"), encounter.Message);
         Assert.False(encounter.HasPendingConflict);
         Assert.False(encounter.ReassignCommand.CanExecute(null));
         Assert.Null(launcher.Chord);
@@ -297,6 +297,14 @@ public sealed class KeyboardShortcutsViewModelTests
         editor.SearchText = AccessKeyText.Strip(L["Menu_File"]);
         Assert.Contains(open, editor.FilteredRows);
 
+        // A tool listed under two names is found by either: Box Layout is Block Layout in Gen 4.
+        var boxLayout = Row(editor, "OpenBoxLayout");
+        Assert.Equal(AccessKeyText.Strip(L["Menu_Save_BoxLayout"]), boxLayout.Title);
+        editor.SearchText = AccessKeyText.Strip(L["Menu_Gen4_BlockLayout"]);
+        Assert.Contains(boxLayout, editor.FilteredRows);
+        editor.SearchText = "Block";
+        Assert.Contains(boxLayout, editor.FilteredRows);
+
         editor.SearchText = "no action has this text";
         Assert.Empty(editor.FilteredRows);
 
@@ -314,7 +322,7 @@ public sealed class KeyboardShortcutsViewModelTests
         var encounter = Row(editor, Encounter);
         Assert.Equal("Ctrl+N", encounter.ShortcutText);
         Assert.Equal(L.Format("Shortcuts_Default", "Ctrl+N"), encounter.DefaultText);
-        Assert.Equal(L.Format("Shortcuts_RecorderName", encounter.Title), encounter.RecorderAutomationName);
+        Assert.Equal(L.Format("Shortcuts_RecorderName", encounter.Title, "Ctrl+N"), encounter.RecorderAutomationName);
         Assert.Equal(L.Format("Shortcuts_ClearFor", encounter.Title), encounter.ClearAutomationName);
         Assert.Equal(L.Format("Shortcuts_ResetFor", encounter.Title), encounter.ResetAutomationName);
 
@@ -339,7 +347,7 @@ public sealed class KeyboardShortcutsViewModelTests
 
         Assert.Equal(L.Format("Shortcuts_Issue_InvalidStored", "Hyper+R"), boxReport.Message);
         Assert.Equal(new ShortcutChord(Ctrl, "R"), boxReport.Chord);
-        Assert.Equal(L.Format("Shortcuts_Issue_SuppressedDefault", "Ctrl+N", misc3.Title), encounter.Message);
+        Assert.Equal(L.Format("Shortcuts_Issue_SuppressedDefault", "Ctrl+N", misc3.QualifiedTitle), encounter.Message);
         Assert.Null(encounter.Chord);
         Assert.Equal(new ShortcutChord(Ctrl, "N"), misc3.Chord);
 
@@ -364,17 +372,234 @@ public sealed class KeyboardShortcutsViewModelTests
 
         Assert.Null(misc3.Chord);
         Assert.Null(misc4.Chord);
-        Assert.Equal(L.Format("Shortcuts_Issue_DuplicateStored", "Ctrl+Shift+J", misc4.Title), misc3.Message);
+        Assert.Equal(L.Format("Shortcuts_Issue_DuplicateStored", "Ctrl+Shift+J", misc4.QualifiedTitle), misc3.Message);
+        Assert.Equal(L.Format("Shortcuts_Issue_DuplicateStored", "Ctrl+Shift+J", misc3.QualifiedTitle), misc4.Message);
 
         // Keep one of them; Save removes the other so the stored state matches the editor.
         misc3.RecordCommand.Execute(new ShortcutChord(Ctrl | Shift, "J"));
         Assert.Equal(new ShortcutChord(Ctrl | Shift, "J"), misc3.Chord);
+        // The other row no longer says that neither action uses the chord.
+        Assert.Equal(L.Format("Shortcuts_Issue_UsedBy", "Ctrl+Shift+J", misc3.QualifiedTitle), misc4.Message);
         editor.SaveCommand.Execute(null);
 
         Assert.Equal("Primary+Shift+J", store.Saved!.KeyboardShortcuts["OpenMisc3"]);
         Assert.DoesNotContain("OpenMisc4", store.Saved.KeyboardShortcuts.Keys);
         Assert.Equal(new ShortcutChord(Ctrl | Shift, "J"), main.Shortcuts["OpenMisc3"].Shortcut);
         Assert.Null(main.Shortcuts["OpenMisc4"].Shortcut);
+    }
+
+    // ---------------------------------------------------------------------
+    // Stored shortcuts that cannot be used
+    // ---------------------------------------------------------------------
+
+    [Fact]
+    public void UnusableStoredShortcut_IsShownInDisplayForm_AndOnlyClaimsADefaultWhenThereIsOne()
+    {
+        var settings = new AppSettings();
+        // Cmd+Option+J from macOS is Ctrl+Alt+J (AltGr) here; Gen 3 Misc has no default.
+        settings.KeyboardShortcuts["OpenMisc3"] = "Primary+Alt+J";
+        // Reserved for text editing; Undo keeps its default.
+        settings.KeyboardShortcuts[ShortcutActionId.Undo] = "Primary+C";
+        // Hand-edited text that does not parse; the Box Report keeps its default.
+        settings.KeyboardShortcuts["OpenBoxReport"] = "Hyper+R";
+        // Does not parse, and Close has no default.
+        settings.KeyboardShortcuts[ShortcutActionId.CloseFile] = "Hyper+Q";
+        var (_, editor, _) = ShortcutTestViewModels.CreateEditor(settings, new FakeSettingsStore());
+        var misc3 = Row(editor, "OpenMisc3");
+
+        Assert.Null(misc3.Chord);
+        Assert.Equal(L.Format("Shortcuts_Issue_InvalidStored_NoDefault", "Ctrl+Alt+J"), misc3.Message);
+        Assert.DoesNotContain("Primary", misc3.Message);
+
+        var undo = Row(editor, ShortcutActionId.Undo);
+        Assert.Equal(new ShortcutChord(Ctrl, "Z"), undo.Chord);
+        Assert.Equal(L.Format("Shortcuts_Issue_InvalidStored", "Ctrl+C"), undo.Message);
+
+        Assert.Equal(L.Format("Shortcuts_Issue_InvalidStored", "Hyper+R"), Row(editor, "OpenBoxReport").Message);
+        Assert.Equal(L.Format("Shortcuts_Issue_InvalidStored_NoDefault", "Hyper+Q"), Row(editor, ShortcutActionId.CloseFile).Message);
+    }
+
+    // ---------------------------------------------------------------------
+    // Messages about another row follow that row
+    // ---------------------------------------------------------------------
+
+    [Fact]
+    public void SuppressedDefaultMessage_FollowsTheRowThatHoldsTheChord()
+    {
+        var settings = new AppSettings();
+        settings.KeyboardShortcuts["OpenMisc3"] = "Primary+N";
+        var store = new FakeSettingsStore();
+        var (_, editor, _) = ShortcutTestViewModels.CreateEditor(settings, store);
+        var encounter = Row(editor, Encounter);
+        var misc3 = Row(editor, "OpenMisc3");
+        var boxReport = Row(editor, "OpenBoxReport");
+        var ctrlN = new ShortcutChord(Ctrl, "N");
+        Assert.Equal(L.Format("Shortcuts_Issue_SuppressedDefault", "Ctrl+N", misc3.QualifiedTitle), encounter.Message);
+
+        // Another row takes Ctrl+N from Gen 3 Misc: the message names the new holder.
+        boxReport.RecordCommand.Execute(ctrlN);
+        boxReport.ReassignCommand.Execute(null);
+        Assert.Equal(ctrlN, boxReport.Chord);
+        Assert.Equal(L.Format("Shortcuts_Issue_SuppressedDefault", "Ctrl+N", boxReport.QualifiedTitle), encounter.Message);
+        Assert.Equal(L.Format("Shortcuts_Moved", boxReport.QualifiedTitle), misc3.Message);
+
+        // The holder lets it go: the default is free, and the message no longer blames anyone.
+        boxReport.ClearCommand.Execute(null);
+        Assert.Equal(L["Shortcuts_Removed"], boxReport.Message);
+        Assert.Equal(L.Format("Shortcuts_Issue_DefaultFree", "Ctrl+N"), encounter.Message);
+        Assert.Equal(L.Format("Shortcuts_Issue_Free", "Ctrl+N"), misc3.Message);
+        Assert.True(encounter.ResetCommand.CanExecute(null));
+
+        encounter.ResetCommand.Execute(null);
+        Assert.Equal(ctrlN, encounter.Chord);
+        Assert.Equal(L.Format("Shortcuts_Assigned", "Ctrl+N"), encounter.Message);
+        Assert.Equal(L.Format("Shortcuts_Issue_UsedBy", "Ctrl+N", encounter.QualifiedTitle), misc3.Message);
+
+        editor.SaveCommand.Execute(null);
+        Assert.DoesNotContain(Encounter, store.Saved!.KeyboardShortcuts.Keys);
+    }
+
+    [Fact]
+    public void DuplicateMessage_BecomesFree_WhenThePartnerTakesAnotherShortcut()
+    {
+        var settings = new AppSettings();
+        settings.KeyboardShortcuts["OpenMisc3"] = "Primary+Shift+J";
+        settings.KeyboardShortcuts["OpenMisc4"] = "Primary+Shift+J";
+        var (_, editor, _) = ShortcutTestViewModels.CreateEditor(settings, new FakeSettingsStore());
+        var misc3 = Row(editor, "OpenMisc3");
+        var misc4 = Row(editor, "OpenMisc4");
+
+        misc3.RecordCommand.Execute(new ShortcutChord(ShortcutModifiers.None, "F9"));
+
+        Assert.Equal(L.Format("Shortcuts_Assigned", "F9"), misc3.Message);
+        Assert.Equal(L.Format("Shortcuts_Issue_Free", "Ctrl+Shift+J"), misc4.Message);
+    }
+
+    [Fact]
+    public void DefaultBlockedByUnresolvedDuplicates_NamesThemUntilOneMovesOn()
+    {
+        var settings = new AppSettings();
+        settings.KeyboardShortcuts["OpenMisc3"] = "Primary+N";
+        settings.KeyboardShortcuts["OpenMisc4"] = "Primary+N";
+        var (_, editor, _) = ShortcutTestViewModels.CreateEditor(settings, new FakeSettingsStore());
+        var encounter = Row(editor, Encounter);
+        var misc3 = Row(editor, "OpenMisc3");
+        var misc4 = Row(editor, "OpenMisc4");
+        Assert.Equal(L.Format("Shortcuts_Issue_SuppressedDefault", "Ctrl+N", misc3.QualifiedTitle), encounter.Message);
+        Assert.Equal(L.Format("Shortcuts_Issue_DuplicateStored", "Ctrl+N", misc4.QualifiedTitle), misc3.Message);
+
+        misc4.RecordCommand.Execute(new ShortcutChord(ShortcutModifiers.None, "F9"));
+
+        Assert.Equal(L.Format("Shortcuts_Issue_Free", "Ctrl+N"), misc3.Message);
+        Assert.Equal(L.Format("Shortcuts_Issue_DefaultFree", "Ctrl+N"), encounter.Message);
+    }
+
+    [Fact]
+    public void MovedMessage_FollowsTheShortcut()
+    {
+        var (_, editor, _) = ShortcutTestViewModels.CreateEditor(new AppSettings(), new FakeSettingsStore());
+        var encounter = Row(editor, Encounter);
+        var launcher = Row(editor, ShortcutActionId.OpenToolLauncher);
+
+        encounter.RecordCommand.Execute(new ShortcutChord(Ctrl, "K"));
+        encounter.ReassignCommand.Execute(null);
+        Assert.Equal(L.Format("Shortcuts_Moved", encounter.QualifiedTitle), launcher.Message);
+
+        encounter.RecordCommand.Execute(new ShortcutChord(ShortcutModifiers.None, "F9"));
+        Assert.Equal(L.Format("Shortcuts_Issue_Free", "Ctrl+K"), launcher.Message);
+
+        // The launcher's own edit replaces the tracked message.
+        launcher.ResetCommand.Execute(null);
+        Assert.Equal(L.Format("Shortcuts_Assigned", "Ctrl+K"), launcher.Message);
+        encounter.ClearCommand.Execute(null);
+        Assert.Equal(L.Format("Shortcuts_Assigned", "Ctrl+K"), launcher.Message);
+    }
+
+    // ---------------------------------------------------------------------
+    // Actions that share a title
+    // ---------------------------------------------------------------------
+
+    public static IEnumerable<object[]> Languages => LocalizedStrings.SupportedLanguages.Select(language => new object[] { language });
+
+    [Theory]
+    [MemberData(nameof(Languages))]
+    public void SharedTitles_AreQualifiedByTheirMenus_InMessagesAndAccessibleNames(string language)
+    {
+        var previous = L.CurrentLanguage;
+        KeyboardShortcutsViewModel? editor = null;
+        try
+        {
+            var settings = new AppSettings();
+            var store = new FakeSettingsStore();
+            var service = new KeyboardShortcutService(settings, store, StandardShortcutPlatform.Instance);
+            // The main view model applies its own startup language, so switch after building it.
+            var main = ShortcutTestViewModels.CreateMainViewModel(settings, store, service);
+            L.SetLanguage(language);
+            editor = new KeyboardShortcutsViewModel(main.Shortcuts, service, new Mock<IDialogService>().Object);
+
+            // Every action is named once, in messages and in accessible names alike.
+            AssertDistinct(editor.Rows.Select(row => row.QualifiedTitle));
+            AssertDistinct(editor.Rows.Select(row => row.RecorderAutomationName));
+            AssertDistinct(editor.Rows.Select(row => row.ClearAutomationName));
+            AssertDistinct(editor.Rows.Select(row => row.ResetAutomationName));
+            AssertDistinct(editor.Rows.Select(row => row.ReassignAutomationName));
+
+            var misc3 = Row(editor, "OpenMisc3");
+            var misc4 = Row(editor, "OpenMisc4");
+            Assert.Equal(misc3.Title, misc4.Title);
+            Assert.Equal(L.Format("Shortcuts_TitleWithMenu", misc3.Title, misc3.CategoryTitle), misc3.QualifiedTitle);
+            Assert.Contains(misc4.CategoryTitle, misc4.QualifiedTitle);
+            Assert.Contains(misc3.QualifiedTitle, misc3.ClearAutomationName);
+
+            // The File menu's Save and the Window menu's Save workspace both show "Save" in English.
+            if (language == "en")
+                Assert.NotEqual(Row(editor, ShortcutActionId.SaveFile).QualifiedTitle, Row(editor, ShortcutActionId.WorkspaceSave).QualifiedTitle);
+
+            // A title no other action has stays as it is.
+            var encounter = Row(editor, Encounter);
+            Assert.Equal(encounter.Title, encounter.QualifiedTitle);
+
+            // The conflict names the Gen 3 editor, never just "Misc".
+            misc3.RecordCommand.Execute(new ShortcutChord(Ctrl | Shift, "J"));
+            misc4.RecordCommand.Execute(new ShortcutChord(Ctrl | Shift, "J"));
+            Assert.Equal(L.Format("Shortcuts_Conflict", "Ctrl+Shift+J", misc3.QualifiedTitle), misc4.Message);
+            Assert.Contains(L["Shortcuts_Reassign"], misc4.ReassignAutomationName);
+        }
+        finally
+        {
+            editor?.Dispose();
+            L.SetLanguage(previous);
+        }
+    }
+
+    // ---------------------------------------------------------------------
+    // Screen readers
+    // ---------------------------------------------------------------------
+
+    [Fact]
+    public void RecorderName_CarriesTheCurrentShortcut_AndRecordingAnnouncesTheResult()
+    {
+        var (_, editor, _) = ShortcutTestViewModels.CreateEditor(new AppSettings(), new FakeSettingsStore());
+        var encounter = Row(editor, Encounter);
+        var changes = new List<string?>();
+        encounter.PropertyChanged += (_, e) => changes.Add(e.PropertyName);
+        Assert.Equal(L.Format("Shortcuts_RecorderName", encounter.Title, "Ctrl+N"), encounter.RecorderAutomationName);
+
+        encounter.IsRecording = true;
+        Assert.Equal(L.Format("Shortcuts_RecorderName", encounter.Title, L["Shortcuts_Recording"]), encounter.RecorderAutomationName);
+        Assert.Contains(nameof(KeyboardShortcutRowViewModel.RecorderAutomationName), changes);
+
+        changes.Clear();
+        encounter.IsRecording = false;
+        encounter.RecordCommand.Execute(new ShortcutChord(Ctrl | Shift, "E"));
+        Assert.Equal(L.Format("Shortcuts_RecorderName", encounter.Title, "Ctrl+Shift+E"), encounter.RecorderAutomationName);
+        Assert.Contains(nameof(KeyboardShortcutRowViewModel.RecorderAutomationName), changes);
+        // The row's message is a polite live region: it now says what was set.
+        Assert.Equal(L.Format("Shortcuts_Assigned", "Ctrl+Shift+E"), encounter.Message);
+
+        encounter.ClearCommand.Execute(null);
+        Assert.Equal(L.Format("Shortcuts_RecorderName", encounter.Title, L["Shortcuts_None"]), encounter.RecorderAutomationName);
+        Assert.Equal(L["Shortcuts_Removed"], encounter.Message);
     }
 
     // ---------------------------------------------------------------------
@@ -440,4 +665,14 @@ public sealed class KeyboardShortcutsViewModelTests
 
     private static KeyboardShortcutRowViewModel Row(KeyboardShortcutsViewModel editor, string id) =>
         Assert.Single(editor.Rows, row => row.ActionId == id);
+
+    private static void AssertDistinct(IEnumerable<string> values)
+    {
+        var duplicates = values
+            .GroupBy(value => value, StringComparer.CurrentCultureIgnoreCase)
+            .Where(group => group.Count() > 1)
+            .Select(group => group.Key)
+            .ToArray();
+        Assert.True(duplicates.Length == 0, "Not unique: " + string.Join(" | ", duplicates));
+    }
 }

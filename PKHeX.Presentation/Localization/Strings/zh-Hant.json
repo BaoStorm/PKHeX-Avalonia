@@ -3763,7 +3763,7 @@
   "Shortcuts_CustomizedCount": "已自訂 {0} 項",
   "Shortcuts_None": "無",
   "Shortcuts_Recording": "請按鍵...",
-  "Shortcuts_RecorderName": "{0} 的快速鍵",
+  "Shortcuts_RecorderName": "{0} 的快速鍵：{1}",
   "Shortcuts_RecorderHelp": "按 Enter，然後按下新的按鍵。Esc 取消，Backspace 移除快速鍵。",
   "Shortcuts_Default": "預設：{0}",
   "Shortcuts_ClearFor": "{0}：移除快速鍵",
@@ -3773,7 +3773,7 @@
   "Shortcuts_Conflict": "{0} 已被 {1} 使用。",
   "Shortcuts_Reassign": "改為在此使用",
   "Shortcuts_Moved": "快速鍵已移至 {0}。",
-  "Shortcuts_Error_UnsupportedKey": "無法使用此按鍵。請使用字母、數字或 F1–F12。",
+  "Shortcuts_Error_UnsupportedKey": "無法使用此按鍵。請使用字母、鍵盤上方一排的數字鍵或 F1–F12。",
   "Shortcuts_Error_NeedsModifier": "請為此按鍵加上 {0}。",
   "Shortcuts_Error_AltGr": "在許多鍵盤上，Ctrl+Alt (AltGr) 用於輸入字元。請使用其他組合。",
   "Shortcuts_Error_Reserved": "{0} 已保留給{1}。",
@@ -3786,5 +3786,14 @@
   "Shortcuts_Issue_DuplicateStored": "{0} 同時指派給了 {1}，因此兩個動作都不會使用它。",
   "Settings_KeyboardShortcuts": "鍵盤快速鍵",
   "Settings_KeyboardShortcuts_Desc": "為最常用的動作和工具指派按鍵。",
-  "Settings_KeyboardShortcuts_Open": "自訂..."
+  "Settings_KeyboardShortcuts_Open": "自訂...",
+  "Shortcuts_TitleWithMenu": "{0}（{1}）",
+  "Shortcuts_ReassignFor": "改為在此使用：{0}",
+  "Shortcuts_Assigned": "快速鍵已設為 {0}。",
+  "Shortcuts_Removed": "快速鍵已移除。",
+  "Shortcuts_Issue_InvalidStored_NoDefault": "無法使用已儲存的快速鍵「{0}」。此動作沒有快速鍵。",
+  "Shortcuts_Issue_DefaultFree": "預設快速鍵 {0} 已空出。還原預設值即可使用。",
+  "Shortcuts_Issue_UsedBy": "{0} 現在由 {1} 使用。",
+  "Shortcuts_Issue_Free": "{0} 已空出。重新指派即可在此使用。",
+  "Settings_KeyboardShortcuts_OpenName": "自訂鍵盤快速鍵"
 }

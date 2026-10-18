@@ -99,9 +99,19 @@ public readonly record struct ShortcutChord(ShortcutModifiers Modifiers, string 
     /// modifiers stay literal, so a deliberate Ctrl chord recorded on macOS remains Ctrl. A chord
     /// that already contains Primary is returned unchanged.
     /// </summary>
+    /// <remarks>
+    /// A chord that holds both Control and Meta stays fully literal. As <c>Primary+Ctrl</c>, the
+    /// macOS chord Ctrl+Cmd+K would resolve to plain Ctrl+K on Windows/Linux, where Primary is
+    /// Ctrl, and take another action's shortcut there. Literal <c>Ctrl+Meta+K</c> keeps its meaning
+    /// on macOS and is rejected on Windows/Linux, where the Windows key is reserved.
+    /// </remarks>
     public ShortcutChord ToPortable(ShortcutPlatformFlavor flavor)
     {
         if ((Modifiers & ShortcutModifiers.Primary) != 0)
+            return this;
+
+        const ShortcutModifiers bothCommands = ShortcutModifiers.Control | ShortcutModifiers.Meta;
+        if ((Modifiers & bothCommands) == bothCommands)
             return this;
 
         var command = CommandModifier(flavor);
@@ -110,6 +120,15 @@ public readonly record struct ShortcutChord(ShortcutModifiers Modifiers, string 
 
         return this with { Modifiers = (Modifiers & ~command) | ShortcutModifiers.Primary };
     }
+
+    /// <summary>
+    /// True when this portable chord holds <see cref="ShortcutModifiers.Primary"/> together with the
+    /// literal modifier that Primary stands for on <paramref name="flavor"/> (for example
+    /// <c>Primary+Ctrl+K</c> on Windows/Linux). <see cref="Resolve"/> would merge the two into one
+    /// modifier and produce a different, shorter chord, so such a chord must not be used there.
+    /// </summary>
+    public bool IsAmbiguousOn(ShortcutPlatformFlavor flavor) =>
+        (Modifiers & ShortcutModifiers.Primary) != 0 && (Modifiers & CommandModifier(flavor)) != 0;
 
     /// <summary>The concrete modifier that <see cref="ShortcutModifiers.Primary"/> stands for.</summary>
     public static ShortcutModifiers CommandModifier(ShortcutPlatformFlavor flavor) =>

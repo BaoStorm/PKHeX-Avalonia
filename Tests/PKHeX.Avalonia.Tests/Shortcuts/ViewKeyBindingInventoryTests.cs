@@ -55,7 +55,7 @@ public sealed class ViewKeyBindingInventoryTests
     {
         var mainWindow = File.ReadAllText(Path.Combine(FindRepoRoot(), "PKHeX.Avalonia", "Views", "MainWindow.axaml"));
 
-        // The configurable shortcuts come from KeyboardShortcutBinder; literal Ctrl gestures here would
+        // The configurable shortcuts run from KeyboardShortcutBinder; literal Ctrl gestures here would
         // bypass the user's settings (and "Ctrl+1" parsed as Key.Cancel, not the digit key).
         Assert.DoesNotContain("Gesture=\"Ctrl+", mainWindow);
         Assert.Contains("<KeyBinding Gesture=\"Escape\" Command=\"{Binding CloseToolLauncherCommand}\" />", mainWindow);
