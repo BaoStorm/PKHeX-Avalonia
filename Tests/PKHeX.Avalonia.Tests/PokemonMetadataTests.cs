@@ -78,6 +78,49 @@ public class PokemonMetadataTests
     }
 
     [Fact]
+    public void SwordShield_GigantamaxAndDynamaxLevelRoundTrip()
+    {
+        var save = new SAV8SWSH();
+        var pk = new PK8 { Species = (ushort)Species.Pikachu, Version = GameVersion.SW };
+        pk.CanGigantamax = false;
+        pk.DynamaxLevel = 4;
+        var vm = Create(pk, save);
+        Assert.True(vm.HasGigantamax);
+        Assert.True(vm.HasDynamaxLevel);
+        Assert.False(vm.CanGigantamax);
+        Assert.Equal(4, vm.DynamaxLevel);
+        Assert.Equal(10, vm.DynamaxLevelMaximum);
+
+        vm.CanGigantamax = true;
+        vm.DynamaxLevel = 10;
+        var prepared = (PK8)vm.PreparePKM();
+        Assert.True(prepared.CanGigantamax);
+        Assert.Equal(10, prepared.DynamaxLevel);
+
+        vm.CanGigantamax = false;
+        vm.DynamaxLevel = 0;
+        prepared = (PK8)vm.PreparePKM();
+        Assert.False(prepared.CanGigantamax);
+        Assert.Equal(0, prepared.DynamaxLevel);
+    }
+
+    [Fact]
+    public void StoredDynamaxLevelAboveTen_IsPreservedOnNoOpPrepare()
+    {
+        var pk = new PK8 { Species = (ushort)Species.Pikachu, Version = GameVersion.SW, DynamaxLevel = 200 };
+        var vm = Create(pk, new SAV8SWSH());
+        Assert.Equal(200, vm.DynamaxLevelMaximum);
+        Assert.Equal(200, ((PK8)vm.PreparePKM()).DynamaxLevel);
+    }
+
+    [Fact]
+    public void EarlierFormat_HidesGigantamaxAndDynamax()
+    {
+        var vm = Create(new PK7(), new SAV7SM());
+        Assert.False(vm.HasGigantamax || vm.HasDynamaxLevel);
+    }
+
+    [Fact]
     public void EarlierFormat_HidesUnsupportedMetadata()
     {
         var vm = Create(new PK6(), new SAV6XY());

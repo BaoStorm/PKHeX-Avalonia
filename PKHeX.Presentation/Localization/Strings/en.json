@@ -3717,5 +3717,7 @@
   "BoxManip_Action_ModifyRemoveItem": "Remove held items",
   "BoxManip_Desc_ModifyRemoveItem": "Removes the held item from every Pokémon.",
   "BoxManip_Action_ModifyHeal": "Heal",
-  "BoxManip_Desc_ModifyHeal": "Restores HP, PP and status."
+  "BoxManip_Desc_ModifyHeal": "Restores HP, PP and status.",
+  "Metadata_CanGigantamax": "Gigantamax Factor",
+  "Metadata_DynamaxLevel": "Dynamax Level"
 }

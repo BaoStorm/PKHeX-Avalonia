@@ -3717,5 +3717,7 @@
   "BoxManip_Action_ModifyRemoveItem": "Quitar objetos equipados",
   "BoxManip_Desc_ModifyRemoveItem": "Quita el objeto equipado de cada Pokémon.",
   "BoxManip_Action_ModifyHeal": "Curar",
-  "BoxManip_Desc_ModifyHeal": "Restaura los PS, los PP y el estado."
+  "BoxManip_Desc_ModifyHeal": "Restaura los PS, los PP y el estado.",
+  "Metadata_CanGigantamax": "Factor Gigamax",
+  "Metadata_DynamaxLevel": "Nivel Dinamax"
 }

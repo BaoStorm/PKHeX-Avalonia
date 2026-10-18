@@ -20,6 +20,11 @@ public partial class PokemonEditorViewModel
     }
 
     public bool HasAlpha => _pk is IAlpha;
+    public bool HasGigantamax => _pk is IGigantamax;
+    public bool HasDynamaxLevel => _pk is IDynamaxLevel;
+    /// <summary>Legal maximum is 10; HaX or an already-stored larger value widens it so loading never clamps data.</summary>
+    public byte DynamaxLevelMaximum => IsHaXMode ? byte.MaxValue : Math.Max((byte)10, _loadedDynamaxLevel);
+    private byte _loadedDynamaxLevel;
     public bool HasSizeScalars => _pk is IScaledSize;
     public bool HasScale => _pk is IScaledSize3;
     public bool HasBattleVersion => _pk is IBattleVersion;
@@ -28,6 +33,8 @@ public partial class PokemonEditorViewModel
     public bool HasHomeTracker => _pk is IHomeTrack;
 
     [ObservableProperty] private bool _isAlpha;
+    [ObservableProperty] private bool _canGigantamax;
+    [ObservableProperty] private byte _dynamaxLevel;
     [ObservableProperty] private byte _heightScalar;
     [ObservableProperty] private byte _weightScalar;
     [ObservableProperty] private byte _scale;
@@ -60,6 +67,10 @@ public partial class PokemonEditorViewModel
         OnPropertyChanged(nameof(BattleVersionList));
         OnPropertyChanged(nameof(HandlerLanguageList));
         IsAlpha = (_pk as IAlpha)?.IsAlpha ?? false;
+        CanGigantamax = (_pk as IGigantamax)?.CanGigantamax ?? false;
+        _loadedDynamaxLevel = (_pk as IDynamaxLevel)?.DynamaxLevel ?? 0;
+        OnPropertyChanged(nameof(DynamaxLevelMaximum));
+        DynamaxLevel = _loadedDynamaxLevel;
         HeightScalar = (_pk as IScaledSize)?.HeightScalar ?? 0;
         WeightScalar = (_pk as IScaledSize)?.WeightScalar ?? 0;
         Scale = (_pk as IScaledSize3)?.Scale ?? 0;
@@ -67,7 +78,7 @@ public partial class PokemonEditorViewModel
         ObedienceLevel = (_pk as IObedienceLevel)?.ObedienceLevel ?? 0;
         HandlingTrainerLanguage = handlerLanguage;
         HomeTracker = ((_pk as IHomeTrack)?.Tracker ?? 0).ToString("X16", CultureInfo.InvariantCulture);
-        foreach (var name in new[] { nameof(HasPlusRecords), nameof(HasAlpha), nameof(HasSizeScalars), nameof(HasScale),
+        foreach (var name in new[] { nameof(HasPlusRecords), nameof(HasAlpha), nameof(HasGigantamax), nameof(HasDynamaxLevel), nameof(HasSizeScalars), nameof(HasScale),
                      nameof(HasBattleVersion), nameof(HasObedienceLevel), nameof(HasHandlerLanguage),
                      nameof(HasHomeTracker), nameof(BattleVersion), nameof(HandlingTrainerLanguage) })
             OnPropertyChanged(name);
@@ -76,6 +87,8 @@ public partial class PokemonEditorViewModel
     private void ApplyMetadata()
     {
         if (_pk is IAlpha alpha) alpha.IsAlpha = IsAlpha;
+        if (_pk is IGigantamax gmax) gmax.CanGigantamax = CanGigantamax;
+        if (_pk is IDynamaxLevel dmax) dmax.DynamaxLevel = DynamaxLevel;
         if (_pk is IScaledSize size) { size.HeightScalar = HeightScalar; size.WeightScalar = WeightScalar; }
         if (_pk is IScaledSize3 scale) scale.Scale = Scale;
         if (_pk is IBattleVersion battle) battle.BattleVersion = (GameVersion)BattleVersion;
@@ -86,6 +99,8 @@ public partial class PokemonEditorViewModel
     }
 
     partial void OnIsAlphaChanged(bool value) { if (!_isLoading) Validate(); }
+    partial void OnCanGigantamaxChanged(bool value) { if (!_isLoading) Validate(); }
+    partial void OnDynamaxLevelChanged(byte value) { if (!_isLoading) Validate(); }
     partial void OnHeightScalarChanged(byte value) { if (!_isLoading) Validate(); }
     partial void OnWeightScalarChanged(byte value) { if (!_isLoading) Validate(); }
     partial void OnScaleChanged(byte value) { if (!_isLoading) Validate(); }
