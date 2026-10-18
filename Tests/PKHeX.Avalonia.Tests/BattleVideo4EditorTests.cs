@@ -46,7 +46,7 @@ public class BattleVideo4EditorTests
     }
 
     /// <summary>Builds an encrypted .bv4 payload with valid seed and footer checksums.</summary>
-    public static byte[] MakeVideo(ushort blockId, uint key, params PK4[][] teams)
+    private static byte[] MakeVideo(ushort blockId, uint key, params PK4[][] teams)
     {
         var data = new byte[BattleVideo4.SIZE_USED];
         var video = new BattleVideo4(data) { IsDecrypted = true };
@@ -74,7 +74,7 @@ public class BattleVideo4EditorTests
     }
 
     /// <summary>Writes a video into partition 0 and points the General-block key at it so Core treats the slot as active.</summary>
-    public static void Seed(SAV4 save, int slot, byte[] video)
+    private static void Seed(SAV4 save, int slot, byte[] video)
     {
         var (offset, extra) = Layout(save);
         var block = offset + (slot * 0x2000);
