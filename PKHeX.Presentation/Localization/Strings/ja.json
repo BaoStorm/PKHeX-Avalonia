@@ -3755,5 +3755,6 @@
   "EncounterDatabase_LoadIntoEditor": "エディターに読み込む",
   "EncounterDatabase_LoadHint": "エディターのポケモンを、この出会いから作った新しいポケモンに置き換えます。",
   "EncounterDatabase_Details": "詳細",
-  "EncounterDatabase_Loaded": "{0}をエディターに読み込みました。"
+  "EncounterDatabase_Loaded": "{0}をエディターに読み込みました。",
+  "Menu_Help_KeyboardShortcuts": "キーボードショートカット..."
 }

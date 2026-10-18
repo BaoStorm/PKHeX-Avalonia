@@ -3755,5 +3755,6 @@
   "EncounterDatabase_LoadIntoEditor": "편집기로 불러오기",
   "EncounterDatabase_LoadHint": "편집기의 포켓몬을 이 만남으로 만든 새 포켓몬으로 바꿉니다.",
   "EncounterDatabase_Details": "세부 정보",
-  "EncounterDatabase_Loaded": "{0}을(를) 편집기로 불러왔습니다."
+  "EncounterDatabase_Loaded": "{0}을(를) 편집기로 불러왔습니다.",
+  "Menu_Help_KeyboardShortcuts": "키보드 단축키..."
 }

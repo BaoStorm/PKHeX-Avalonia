@@ -3755,5 +3755,6 @@
   "EncounterDatabase_LoadIntoEditor": "载入编辑器",
   "EncounterDatabase_LoadHint": "用此遇见生成的新宝可梦替换编辑器中的宝可梦。",
   "EncounterDatabase_Details": "详情",
-  "EncounterDatabase_Loaded": "已将 {0} 载入编辑器。"
+  "EncounterDatabase_Loaded": "已将 {0} 载入编辑器。",
+  "Menu_Help_KeyboardShortcuts": "键盘快捷键..."
 }

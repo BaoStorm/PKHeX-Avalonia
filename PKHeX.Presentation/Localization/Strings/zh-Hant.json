@@ -3755,5 +3755,6 @@
   "EncounterDatabase_LoadIntoEditor": "載入編輯器",
   "EncounterDatabase_LoadHint": "用此遇見產生的新寶可夢取代編輯器中的寶可夢。",
   "EncounterDatabase_Details": "詳情",
-  "EncounterDatabase_Loaded": "已將 {0} 載入編輯器。"
+  "EncounterDatabase_Loaded": "已將 {0} 載入編輯器。",
+  "Menu_Help_KeyboardShortcuts": "鍵盤快速鍵..."
 }

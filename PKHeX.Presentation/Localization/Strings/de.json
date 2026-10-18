@@ -3755,5 +3755,6 @@
   "EncounterDatabase_LoadIntoEditor": "In Editor laden",
   "EncounterDatabase_LoadHint": "Ersetzt das Pokémon im Editor durch ein neues Pokémon aus dieser Begegnung.",
   "EncounterDatabase_Details": "Details",
-  "EncounterDatabase_Loaded": "{0} wurde in den Editor geladen."
+  "EncounterDatabase_Loaded": "{0} wurde in den Editor geladen.",
+  "Menu_Help_KeyboardShortcuts": "Tastenkombinationen..."
 }

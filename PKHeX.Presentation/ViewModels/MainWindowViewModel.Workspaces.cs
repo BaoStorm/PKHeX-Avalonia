@@ -1,7 +1,9 @@
 using System.Collections.ObjectModel;
+using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using PKHeX.Application.Shortcuts;
 using PKHeX.Core;
 using PKHeX.Presentation.Localization;
 
@@ -328,7 +330,10 @@ public partial class MainWindowViewModel
         InitializeToolMenuGroups();
     }
 
-    private void RegisterMenuCapability(string titleKey, ICommand command, string menuGroupTitleKey, bool showInLauncher = false)
+    // Both helpers forward the caller's command expression: without it the descriptor would capture
+    // the parameter name "command" instead of the command property, and derive its action ID from that.
+    private void RegisterMenuCapability(string titleKey, ICommand command, string menuGroupTitleKey, bool showInLauncher = false,
+        [CallerArgumentExpression(nameof(command))] string commandExpression = "")
     {
         _capabilityRegistry.Add(new(
             titleKey,
@@ -337,15 +342,17 @@ public partial class MainWindowViewModel
             command,
             showInLauncher: showInLauncher,
             menuGroupTitleKey: menuGroupTitleKey,
-            capabilityPredicate: GetMenuCapabilityPredicate(menuGroupTitleKey)));
+            capabilityPredicate: GetMenuCapabilityPredicate(menuGroupTitleKey),
+            commandExpression: commandExpression));
     }
 
     private void RegisterConditionalMenuCapability(string titleKey, ICommand command,
-        string menuGroupTitleKey, Func<bool> isApplicable)
+        string menuGroupTitleKey, Func<bool> isApplicable,
+        [CallerArgumentExpression(nameof(command))] string commandExpression = "")
     {
         _capabilityRegistry.Add(new(titleKey, string.Empty, string.Empty, command,
             showInLauncher: true, menuGroupTitleKey: menuGroupTitleKey,
-            capabilityPredicate: isApplicable));
+            capabilityPredicate: isApplicable, commandExpression: commandExpression));
     }
 
     private void InitializeToolMenuGroups()
@@ -430,6 +437,8 @@ public sealed class ToolLauncherItem : ObservableObject
     private readonly string _descriptionKey;
     private readonly Func<bool>? _capabilityPredicate;
     private bool _isAvailable;
+    private ShortcutChord? _shortcut;
+    private string _shortcutText = string.Empty;
 
     public string IconData { get; }
     public ICommand Command { get; }
@@ -442,6 +451,27 @@ public sealed class ToolLauncherItem : ObservableObject
         ? string.Empty
         : LocalizedStrings.Instance[_descriptionKey];
 
+    /// <summary>
+    /// Stable keyboard-shortcut action ID. Every descriptor of one command shares it (the Pokedex in
+    /// each generation group is one action), and different commands never do.
+    /// </summary>
+    public string ActionId { get; }
+
+    /// <summary>Effective shortcut of <see cref="ActionId"/>, or <see langword="null"/>.</summary>
+    public ShortcutChord? Shortcut => _shortcut;
+
+    /// <summary>Platform display text of <see cref="Shortcut"/>, or an empty string.</summary>
+    public string ShortcutText => _shortcutText;
+
+    public bool HasShortcut => _shortcut is not null;
+
+    internal string TitleKey => _titleKey;
+
+    /// <param name="actionId">
+    /// Explicit shortcut action ID. When omitted, the ID is the command property name without its
+    /// <c>Command</c> suffix, taken from <paramref name="commandExpression"/>.
+    /// </param>
+    /// <param name="commandExpression">Source text of the command argument; supplied by the compiler.</param>
     public ToolLauncherItem(
         string titleKey,
         string descriptionKey,
@@ -450,7 +480,9 @@ public sealed class ToolLauncherItem : ObservableObject
         bool showInLauncher = true,
         bool showInReports = false,
         string? menuGroupTitleKey = null,
-        Func<bool>? capabilityPredicate = null)
+        Func<bool>? capabilityPredicate = null,
+        string? actionId = null,
+        [CallerArgumentExpression(nameof(command))] string commandExpression = "")
     {
         _titleKey = titleKey;
         _descriptionKey = descriptionKey;
@@ -460,8 +492,15 @@ public sealed class ToolLauncherItem : ObservableObject
         ShowInReports = showInReports;
         MenuGroupTitleKey = menuGroupTitleKey;
         _capabilityPredicate = capabilityPredicate;
-        _isAvailable = command.CanExecute(null) && (capabilityPredicate?.Invoke() ?? true);
+        ActionId = actionId ?? ShortcutActionId.FromExpression(commandExpression);
+        _isAvailable = CanInvoke();
     }
+
+    /// <summary>
+    /// Live availability: <see cref="Command"/> can execute and the save-type predicate accepts the
+    /// current save. Unlike <see cref="IsAvailable"/> this is never a cached value.
+    /// </summary>
+    public bool CanInvoke() => Command.CanExecute(null) && (_capabilityPredicate?.Invoke() ?? true);
 
     public bool Matches(string query) => Title.Contains(query, StringComparison.CurrentCultureIgnoreCase)
         || Description.Contains(query, StringComparison.CurrentCultureIgnoreCase);
@@ -474,12 +513,31 @@ public sealed class ToolLauncherItem : ObservableObject
 
     public void RefreshAvailability()
     {
-        var available = Command.CanExecute(null) && (_capabilityPredicate?.Invoke() ?? true);
+        var available = CanInvoke();
         if (_isAvailable == available)
             return;
 
         _isAvailable = available;
         OnPropertyChanged(nameof(IsAvailable));
+    }
+
+    /// <summary>Publishes the action's resolved shortcut; raises change notifications only for real changes.</summary>
+    internal void SetShortcut(ShortcutChord? chord, string text)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+
+        var chordChanged = _shortcut != chord;
+        var textChanged = !string.Equals(_shortcutText, text, StringComparison.Ordinal);
+        _shortcut = chord;
+        _shortcutText = text;
+
+        if (chordChanged)
+        {
+            OnPropertyChanged(nameof(Shortcut));
+            OnPropertyChanged(nameof(HasShortcut));
+        }
+        if (textChanged)
+            OnPropertyChanged(nameof(ShortcutText));
     }
 }
 
