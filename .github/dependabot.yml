@@ -1,4 +1,6 @@
 # Routine version updates wait seven days; security fixes are not delayed.
+# The chore prefix plus scope gives Dependabot PRs a conventional title
+# (chore(deps): ...), which the PR title check and release.yml need.
 version: 2
 updates:
 - package-ecosystem: github-actions
@@ -9,6 +11,9 @@ updates:
     time: "06:00"
     timezone: Europe/Zurich
   open-pull-requests-limit: 3
+  commit-message:
+    prefix: chore
+    include: scope
   groups:
     minor-and-patch:
       patterns:
@@ -33,6 +38,9 @@ updates:
     time: "06:00"
     timezone: Europe/Zurich
   open-pull-requests-limit: 3
+  commit-message:
+    prefix: chore
+    include: scope
   groups:
     minor-and-patch:
       patterns:

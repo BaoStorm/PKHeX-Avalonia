@@ -52,6 +52,6 @@ public class LayerDependencyTests
         Assert.DoesNotContain(App.GetTypes(), type => type.Name == nameof(SlotService) && !type.IsInterface);
     }
 
-    private static string Describe(TestResult r) =>
+    private static string Describe(NetArchTest.Rules.TestResult r) =>
         r.IsSuccessful ? "" : "Offending types: " + string.Join(", ", r.FailingTypeNames ?? []);
 }
