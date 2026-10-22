@@ -169,8 +169,8 @@ steps above; only the secret contents change.
 GitHub releases provide portable ZIPs, AppImages built with `appimagetool`, and
 Flatpak bundles built from source inside the SDK sandbox. Choose the package
 that fits your desktop; [Flatpak installation and maintenance](#linux-flatpak)
-are documented below. A Flathub listing still requires an independent human
-submission and reviewer acceptance under its current policies.
+are documented below. A Flathub listing requires a separate submission and
+reviewer acceptance under its current requirements.
 
 ### AppImage catalog metadata and updates
 
@@ -261,8 +261,8 @@ review is far more likely to reject them.
   needed), code signing for the Windows installer and exe.
 - **Manual, one-time-per-version, by design (cannot be automated without
   publishing into third-party repos on the maintainer's behalf):**
-  submitting the Homebrew cask and winget manifest PRs. Flathub listing requires
-  an independently human-authored manifest and a human-owned submission; see below.
+  submitting the Homebrew cask and winget manifest PRs. Flathub has a separate
+  submission and review process; see below.
 
 ## Linux Flatpak
 
@@ -338,17 +338,10 @@ is disabled only for the offline publish; normal application CI retains it.
 
 ### Official Flathub route
 
-The requested visibility on Flathub is a separate publication step. Its current
-[requirements](https://docs.flathub.org/docs/for-app-authors/requirements#generative-ai-policy)
-prohibit AI-generated or AI-assisted manifests and AI agents opening or automating
-submission PRs, commit messages, descriptions or review interactions. This
-repository's Flatpak packaging was AI-assisted and must not be submitted as an
-eligible Flathub manifest. The application's AI assistance is disclosed in this
-repository; Flathub also requires disclosure of its affected parts and extent.
-
-A human maintainer must independently author and maintain the Flathub manifest,
-check the current requirements, use a stable source release, perform the required
-offline build, runtime and linter checks, and personally follow the
+Publishing on Flathub is a separate step. Check its current
+[requirements](https://docs.flathub.org/docs/for-app-authors/requirements), use a
+stable source release, perform the required offline build, runtime and linter
+checks, and follow the
 [submission process](https://docs.flathub.org/docs/for-app-authors/submission)
 against `flathub/flathub`'s `new-pr` branch. Reviewers decide acceptance; neither a
 local bundle nor a submitted PR establishes a listing. The GitHub-based ID
