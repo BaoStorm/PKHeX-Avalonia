@@ -277,7 +277,7 @@ Other release targets are `linux-x64`, `osx-arm64`, and `osx-x64`. Installers, D
 
 Tests cover Core behavior, Avalonia controls/ViewModels, headless rendering, and architecture boundaries. CI builds and tests on Windows, macOS, and Linux.
 
-Development is AI-assisted. Shared repository instructions are in [AGENTS.md](AGENTS.md). Contributions go through branches and pull requests. Keep consumer changes outside the Core mirror, add user-facing strings to all ten language resources, and include relevant regression coverage. CI owns the application version bump; do not edit `UIVersion` in a PR.
+Shared repository instructions are in [AGENTS.md](AGENTS.md). Contributions go through branches and pull requests. Keep consumer changes outside the Core mirror, add user-facing strings to all ten language resources, and include relevant regression coverage. CI owns the application version bump; do not edit `UIVersion` in a PR.
 
 Start with [CONTRIBUTING.md](CONTRIBUTING.md) and the [development guide](docs/development.md).
 
