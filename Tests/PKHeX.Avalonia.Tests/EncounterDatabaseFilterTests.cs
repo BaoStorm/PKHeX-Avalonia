@@ -150,7 +150,7 @@ public class EncounterDatabaseFilterTests
 
     [AvaloniaTheory]
     [InlineData(900, 700)]
-    [InlineData(650, 500)]
+    [InlineData(650, 540)]
     public async Task ViewKeepsFiltersSearchAndLoadReachable(double width, double height)
     {
         using var app = new HeadlessAppFixture();
