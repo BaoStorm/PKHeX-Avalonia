@@ -27,7 +27,7 @@
                             <DataTemplate DataType="vm:ApricornSlotViewModel">
                                 <Grid ColumnDefinitions="150,*" Margin="0,4">
                                     <TextBlock Text="{Binding Name}" VerticalAlignment="Center" />
-                                    <NumericUpDown Grid.Column="1" Value="{Binding Count}" Minimum="0" Maximum="255" Width="100" />
+                                    <NumericUpDown Grid.Column="1" Value="{Binding Count}" Minimum="0" Maximum="255" Width="128" />
                                 </Grid>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
