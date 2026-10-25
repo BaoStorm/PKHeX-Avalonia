@@ -51,7 +51,7 @@ public sealed partial class ShortcutLocalizationTests
 
     [Theory]
     [InlineData("en", "top row")]
-    [InlineData("pt-BR", "top row")]
+    [InlineData("pt-BR", "linha superior")]
     [InlineData("de", "oberen Reihe")]
     [InlineData("es", "fila superior")]
     [InlineData("fr", "rangée supérieure")]
