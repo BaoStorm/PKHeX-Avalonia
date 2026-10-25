@@ -107,4 +107,6 @@ jobs:
             **/TestResults/events4-*.txt
             **/TestResults/encounter-layout-*.png
             **/TestResults/encounter-layout-*.txt
+            **/TestResults/numeric-fields-*.png
+            **/TestResults/numeric-fields-*.txt
           retention-days: 14

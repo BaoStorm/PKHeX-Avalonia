@@ -27,10 +27,9 @@
                 </ListBox>
 
                 <StackPanel Grid.Row="2" Spacing="5" Margin="0,10,10,0">
-                    <Grid ColumnDefinitions="Auto,*">
-                        <TextBlock Text="{loc:Loc HallOfFame1Editor_Clears}" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                        <NumericUpDown Grid.Column="1" Value="{Binding ClearCount}" Minimum="0" Maximum="255"/>
-                    </Grid>
+                    <!-- Label above the field: beside it, a long translated label left too little room for "255". -->
+                    <TextBlock Text="{loc:Loc HallOfFame1Editor_Clears}"/>
+                    <NumericUpDown Value="{Binding ClearCount}" Minimum="0" Maximum="255"/>
                     <Button Content="{loc:Loc HallOfFame1Editor_RegisterParty}" Command="{Binding SetPartyCommand}" HorizontalAlignment="Stretch"/>
                     <Button Content="{loc:Loc HallOfFame1Editor_ClearAll}" Command="{Binding ClearAllCommand}" HorizontalAlignment="Stretch"/>
                 </StackPanel>
@@ -50,7 +49,7 @@
                             <NumericUpDown Value="{Binding SelectedSlotIndex}"
                                            Minimum="0" Maximum="5"
                                            FormatString="0"
-                                           Width="80"/>
+                                           Width="108"/>
                             <TextBlock Text="{loc:Loc HallOfFame1Editor_SlotRange}" VerticalAlignment="Center" Opacity="0.6"/>
                         </StackPanel>
                     </StackPanel>
@@ -72,7 +71,7 @@
 
                         <StackPanel Grid.Row="1" Spacing="5" Margin="0,10,0,0">
                             <TextBlock Text="{loc:Loc HallOfFame1Editor_Level}"/>
-                            <NumericUpDown Value="{Binding Level}" Minimum="1" Maximum="100" Width="100" HorizontalAlignment="Left"/>
+                            <NumericUpDown Value="{Binding Level}" Minimum="1" Maximum="100" Width="128" HorizontalAlignment="Left"/>
                         </StackPanel>
 
                         <StackPanel Grid.Row="2" Spacing="5" Margin="0,10,0,0">
